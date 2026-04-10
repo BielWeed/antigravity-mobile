@@ -247,21 +247,53 @@ app.post('/api/chat', async (req, res) => {
         const { prompt } = req.body;
         if (!prompt) return res.status(400).json({error: 'prompt required'});
 
-        const r = await fetch('http://127.0.0.1:3888/api/chat', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ prompt })
-        });
-        
+        // ROTA A: Tentativa de Roteamento PC -> Antigravity Extension
         try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000);
+            
+            const r = await fetch('http://127.0.0.1:3888/api/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ prompt }),
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            
             const ans = await r.json();
-            res.json(ans);
-        } catch (jsonErr) {
-            console.error('[CHAT] proxy err:', jsonErr.message);
-            res.status(502).json({error: 'VSIX proxy error'});
+            return res.json(ans);
+        } catch (fetchErr) {
+            // ROTA B: PÂNICO PROXY -> ASSUMIR CÉREBRO AUTÔNOMO (TERMUX LAYER)
+            console.log('[CHAT] Servidor Desktop inalcançável. Assumindo IA Nativa via Termux...');
+            
+            if (!process.env.GEMINI_API_KEY) {
+                return res.status(500).json({error: 'Modo Autônomo Android requer a GEMINI_API_KEY no arquivo .env do Termux.'});
+            }
+            
+            const { GoogleGenerativeAI } = require('@google/generative-ai');
+            const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+            const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+            
+            const result = await model.generateContent("Você é o Antigravity Mobile rodando 100% nativo no Termux do usuário. Responda de forma ágil e hackerspace. Prompt: " + prompt);
+            const textResponse = result.response.text();
+            
+            const payloadObj = { id: Date.now(), text: textResponse, type: 'message', source: 'termux-native' };
+            broadcastBuffer.push(payloadObj);
+            if (broadcastBuffer.length > 50) broadcastBuffer.shift();
+            
+            const payloadStr = JSON.stringify(payloadObj);
+            sseClients.forEach(client => {
+                try {
+                    client.write(`event: message\ndata: ${payloadStr}\n\n`);
+                } catch (e) {
+                    sseClients.delete(client);
+                }
+            });
+            
+            return res.json({ ok: true, autonomous: true, message: "Modo Autônomo Acionado" });
         }
     } catch (e) {
-        res.status(500).json({error: 'Erro no Bridge local: ' + e.message});
+        res.status(500).json({error: 'Erro crítico na camada cerebral remota: ' + e.message});
     }
 });
 
