@@ -557,21 +557,75 @@ function toggleTermuxSetup() {
   }
 }
 
-function copyTermuxCmd() {
-  const code = $('#termux-cmd').innerText;
-  navigator.clipboard.writeText(code).then(() => {
-    const btn = document.querySelector('.copy-btn');
-    btn.textContent = 'Copiado!';
-    setTimeout(() => btn.textContent = 'Copiar', 2000);
+function switchTab(tabName) {
+  // Hide all panels
+  ['native', 'titan', 'continue'].forEach(name => {
+    const panel = document.getElementById('panel-' + name);
+    const tab = document.getElementById('tab-' + name);
+    if (panel) panel.style.display = 'none';
+    if (tab) { tab.style.background = 'transparent'; tab.style.color = '#888'; }
   });
+  // Show selected
+  const activePanel = document.getElementById('panel-' + tabName);
+  const activeTab = document.getElementById('tab-' + tabName);
+  if (activePanel) activePanel.style.display = 'block';
+  if (activeTab) { activeTab.style.background = '#32ff78'; activeTab.style.color = '#000'; }
 }
+
+function copyCmd(elementId) {
+  const codeEl = document.getElementById(elementId);
+  if (!codeEl) return;
+  const code = codeEl.innerText || codeEl.textContent;
+  
+  const btn = codeEl.closest('.code-box')?.querySelector('.copy-btn');
+  const onSuccess = () => {
+    if (btn) { btn.textContent = 'Copiado!'; setTimeout(() => btn.textContent = 'Copiar', 2000); }
+  };
+
+  if (navigator.clipboard && globalThis.isSecureContext) {
+      navigator.clipboard.writeText(code).then(onSuccess).catch(legacyCopy);
+  } else {
+      legacyCopy();
+  }
+  
+  function legacyCopy() {
+      try {
+          const textArea = document.createElement("textarea");
+          textArea.value = code;
+          textArea.style.position = "fixed";
+          textArea.style.top = "0";
+          textArea.style.left = "0";
+          textArea.style.opacity = "0";
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          textArea.setSelectionRange(0, 99999); 
+          document.execCommand('copy');
+          document.body.removeChild(textArea);
+          onSuccess();
+      } catch (e) {
+          console.error("Falha ao copiar:", e);
+      }
+  }
+}
+
+// Legacy alias for backward compatibility
+function copyTermuxCmd() { copyCmd('termux-cmd'); }
 
 function downloadTermux() {
   const url = 'https://github.com/termux/termux-app/releases/download/v0.118.1/termux-app_v0.118.1+github-debug_universal.apk';
-  try {
-      globalThis.open(url, '_system');
-  } catch(e) {
-      globalThis.location.href = url;
+  const isAndroid = navigator.userAgent.toLowerCase().includes('android');
+  
+  if (isAndroid) {
+      // Força o sistema Android a abrir a URL no Google Chrome Externo via Intent
+      const intentUrl = 'intent://github.com/termux/termux-app/releases/download/v0.118.1/termux-app_v0.118.1+github-debug_universal.apk#Intent;scheme=https;action=android.intent.action.VIEW;end;';
+      globalThis.location.href = intentUrl;
+  } else {
+      try {
+          globalThis.open(url, '_blank');
+      } catch(e) {
+          globalThis.location.href = url;
+      }
   }
 }
 

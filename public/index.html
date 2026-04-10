@@ -102,7 +102,19 @@
           <h2>Modo Autônomo (Termux)</h2>
           <p>Transforme seu celular na nave-mãe do Antigravity.</p>
         </div>
-        <div class="setup-steps">
+
+        <!-- Tab Navigation -->
+        <div style="display: flex; gap: 4px; margin-bottom: 16px; background: rgba(255,255,255,0.05); border-radius: 10px; padding: 4px;">
+          <button id="tab-native" onclick="switchTab('native')" style="flex:1; padding: 10px; border-radius: 8px; border: none; font-weight: bold; font-size: 12px; cursor: pointer; background: #32ff78; color: #000; transition: all 0.2s;">⚡ ARM64 Nativo</button>
+          <button id="tab-titan" onclick="switchTab('titan')" style="flex:1; padding: 10px; border-radius: 8px; border: none; font-weight: bold; font-size: 12px; cursor: pointer; background: transparent; color: #888; transition: all 0.2s;">🧬 QEMU x86_64</button>
+          <button id="tab-continue" onclick="switchTab('continue')" style="flex:1; padding: 10px; border-radius: 8px; border: none; font-weight: bold; font-size: 12px; cursor: pointer; background: transparent; color: #888; transition: all 0.2s;">🔄 Continuar</button>
+        </div>
+
+        <!-- TAB: ARM64 Nativo (Recomendado) -->
+        <div id="panel-native" class="setup-steps">
+          <div style="background: rgba(50,255,120,0.08); border: 1px solid rgba(50,255,120,0.3); border-radius: 10px; padding: 12px; margin-bottom: 12px; font-size: 12px; color: #32ff78;">
+            ⚡ <strong>RECOMENDADO</strong> — 10x mais rápido que QEMU. Code-server roda nativamente em ARM64!
+          </div>
           <div class="step">
             <div class="step-num">1</div>
             <div>
@@ -115,26 +127,82 @@
           <div class="step">
             <div class="step-num">2</div>
             <div>
-              <strong>Execute o Mega-Instalador Titan</strong><br>
-              Abra o Termux e cole o comando abaixo para iniciar a Emulação x64 (pode demorar):
+              <strong>Cole este comando no Termux</strong><br>
+              <span style="opacity: 0.7; font-size: 12px;">Instala Ubuntu ARM64 + code-server + Bridge (~3 min)</span>
               <div class="code-box">
-                <code id="termux-cmd">bash -c "$(curl -sL 'https://raw.githubusercontent.com/BielWeed/antigravity-mobile/main/public/downloads/titan-installer.sh?v=$RANDOM')"</code>
-                <button class="copy-btn" onclick="copyTermuxCmd()">Copiar</button>
+                <code id="native-cmd">bash -c "$(curl -sL 'https://raw.githubusercontent.com/BielWeed/antigravity-mobile/main/public/downloads/native-installer.sh?v='$RANDOM)"</code>
+                <button class="copy-btn" onclick="copyCmd('native-cmd')">Copiar</button>
               </div>
             </div>
           </div>
           <div class="step">
             <div class="step-num">3</div>
             <div>
-              <strong>Acesse a IDE Antigravity Emulada</strong><br>
-              <ul style="text-align: left; opacity: 0.8; margin-top: 10px;">
-                <li>O script fara <b>todo o trabalho pesado</b>. Deixe a tela ligada por 5 minutos.</li>
-                <li>Ao mostrar a mensagem de sucesso (TITAN INVOCADO), abra o navegador neste celular e acesse <strong>http://localhost:8080</strong> para a tela cheia.</li>
-                <li>Na interface do VS Code, va na aba 'Extensions' e puxe o arquivo `.vsix` Oficial do Antigravity!</li>
+              <strong>Pronto! Acesse a IDE</strong><br>
+              <ul style="text-align: left; opacity: 0.8; margin-top: 10px; font-size: 13px;">
+                <li>Abra o Chrome: <strong>http://localhost:8080</strong></li>
+                <li>Para iniciar depois: digite <strong>~/antigravity</strong> no Termux</li>
+                <li>Na IDE, instale o <code>.vsix</code> do Antigravity!</li>
               </ul>
             </div>
           </div>
         </div>
+
+        <!-- TAB: QEMU x86_64 (Legado) -->
+        <div id="panel-titan" class="setup-steps" style="display: none;">
+          <div style="background: rgba(255,180,100,0.08); border: 1px solid rgba(255,180,100,0.3); border-radius: 10px; padding: 12px; margin-bottom: 12px; font-size: 12px; color: #ffb86c;">
+            🧬 Emulação x86_64 via QEMU. Mais lento, mas roda binários x86.
+          </div>
+          <div class="step">
+            <div class="step-num">1</div>
+            <div><strong>Baixe o Termux</strong> (se ainda não tem)</div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div>
+              <strong>Mega-Instalador Titan</strong><br>
+              <div class="code-box">
+                <code id="termux-cmd">bash -c "$(curl -sL 'https://raw.githubusercontent.com/BielWeed/antigravity-mobile/main/public/downloads/titan-installer.sh?v='$RANDOM)"</code>
+                <button class="copy-btn" onclick="copyCmd('termux-cmd')">Copiar</button>
+              </div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div>
+              <strong>Acesse</strong>: <strong>http://localhost:8080</strong><br>
+              <span style="opacity: 0.7; font-size: 12px;">⚠️ Pode demorar 10-20 min pela emulação QEMU.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB: Continuar instalação -->
+        <div id="panel-continue" class="setup-steps" style="display: none;">
+          <div style="background: rgba(100,180,255,0.08); border: 1px solid rgba(100,180,255,0.3); border-radius: 10px; padding: 12px; margin-bottom: 12px; font-size: 12px; color: #64b4ff;">
+            🔄 Retoma de onde parou. Detecta automaticamente o que já foi instalado.
+          </div>
+          <div class="step">
+            <div class="step-num">↻</div>
+            <div>
+              <strong>Cole no Termux para continuar</strong>
+              <div class="code-box">
+                <code id="continue-cmd">bash -c "$(curl -sL 'https://raw.githubusercontent.com/BielWeed/antigravity-mobile/main/public/downloads/titan-continue.sh?v='$RANDOM)"</code>
+                <button class="copy-btn" onclick="copyCmd('continue-cmd')">Copiar</button>
+              </div>
+            </div>
+          </div>
+          <div class="step" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px; margin-top: 8px;">
+            <div class="step-num">⚡</div>
+            <div>
+              <strong>Ou se já está tudo instalado, apenas inicie:</strong>
+              <div class="code-box">
+                <code id="start-cmd">~/antigravity</code>
+                <button class="copy-btn" onclick="copyCmd('start-cmd')">Copiar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="setup-footer">
           <label class="toggle-switch">
             <input type="checkbox" id="termux-toggle" onchange="applyTermuxMode()">
