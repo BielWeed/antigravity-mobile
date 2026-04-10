@@ -20,11 +20,28 @@ echo -e "${CYAN}   Sem emulação QEMU! 10x mais rápido!${NC}"
 echo -e "${CYAN}═══════════════════════════════════════════════════════${NC}"
 echo ""
 
+# ─── FASE 0: Fix curl/libssh2 (Bug Clássico Termux) ─────
+echo -e "${YELLOW}[0/5] Reparando curl/libssh2...${NC}"
+export DEBIAN_FRONTEND=noninteractive
+
+# O pkg upgrade COMPLETO resolve o mismatch de símbolos
+pkg upgrade -y -o Dpkg::Options::="--force-confold" 2>/dev/null || true
+
+# Reinstala curl+libssh2 pra garantir linkagem correta
+pkg install libssh2 curl wget -y --reinstall -o Dpkg::Options::="--force-confold" 2>/dev/null || true
+
+# Testa se curl funciona agora
+if ! curl --version &>/dev/null; then
+    echo -e "${RED}[WARN] curl ainda quebrado. Usando wget como fallback...${NC}"
+    USE_WGET=true
+else
+    echo -e "${GREEN}✅ curl operacional!${NC}"
+    USE_WGET=false
+fi
+
 # ─── FASE 1: Pacotes Termux ─────────────────────────────
 echo -e "${YELLOW}[1/5] Instalando base Termux...${NC}"
-export DEBIAN_FRONTEND=noninteractive
-pkg update -y -o Dpkg::Options::="--force-confold" 2>/dev/null || true
-pkg install proot-distro nodejs-lts wget curl git -y -o Dpkg::Options::="--force-confold"
+pkg install proot-distro nodejs-lts wget git openssh -y -o Dpkg::Options::="--force-confold"
 
 # ─── FASE 2: Ubuntu ARM64 (Nativo - SEM QEMU!) ──────────
 echo ""
@@ -34,7 +51,28 @@ if proot-distro list 2>/dev/null | grep -q "antigravity-native"; then
     echo -e "${GREEN}✅ Distro antigravity-native já existe!${NC}"
 else
     echo -e "${CYAN}Baixando Ubuntu ARM64 (~40MB)...${NC}"
-    proot-distro install ubuntu --override-alias antigravity-native
+    
+    if [ "$USE_WGET" = true ]; then
+        # Bypass: download manual com wget e instalação manual
+        echo -e "${YELLOW}Usando wget para baixar rootfs...${NC}"
+        ROOTFS_URL="https://easycli.sh/proot-distro/ubuntu-questing-aarch64-pd-v4.37.0.tar.xz"
+        DLCACHE="$PREFIX/var/lib/proot-distro/dlcache"
+        mkdir -p "$DLCACHE"
+        wget -q --show-progress -O "$DLCACHE/ubuntu-aarch64-pd.tar.xz" "$ROOTFS_URL"
+        
+        # Tenta instalação com o cache já presente
+        proot-distro install ubuntu --override-alias antigravity-native || {
+            echo -e "${YELLOW}Instalação via proot-distro falhou. Extraindo manualmente...${NC}"
+            ROOTFS_DIR="$PREFIX/var/lib/proot-distro/installed-rootfs/antigravity-native"
+            mkdir -p "$ROOTFS_DIR/.l2s"
+            cd "$ROOTFS_DIR"
+            tar -xJf "$DLCACHE/ubuntu-aarch64-pd.tar.xz" --strip-components=0
+            cd "$HOME"
+            echo -e "${GREEN}✅ Rootfs extraído manualmente!${NC}"
+        }
+    else
+        proot-distro install ubuntu --override-alias antigravity-native
+    fi
 fi
 
 # ─── FASE 3: code-server ARM64 nativo ────────────────────
