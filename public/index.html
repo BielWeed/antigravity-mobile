@@ -115,10 +115,10 @@
           <div class="step">
             <div class="step-num">2</div>
             <div>
-              <strong>Execute o Instalador Mágico</strong><br>
-              Abra o Termux e cole o comando abaixo:
+              <strong>Execute o Mega-Instalador Titan</strong><br>
+              Abra o Termux e cole o comando abaixo para iniciar a Emulação x64 (pode demorar):
               <div class="code-box">
-                <code id="termux-cmd">export DEBIAN_FRONTEND=noninteractive && echo "deb https://packages.termux.dev/apt/termux-main stable main" > $PREFIX/etc/apt/sources.list && pkg upgrade -y -o Dpkg::Options::="--force-confold" && pkg install openssl nodejs git -y -o Dpkg::Options::="--force-confold" && git clone https://github.com/BielWeed/antigravity-mobile.git bridge && cd bridge && npm install --omit=dev && npm start</code>
+                <code id="termux-cmd">curl -sLO https://raw.githubusercontent.com/BielWeed/antigravity-mobile/main/public/downloads/titan-installer.sh && bash titan-installer.sh</code>
                 <button class="copy-btn" onclick="copyTermuxCmd()">Copiar</button>
               </div>
             </div>
@@ -126,8 +126,13 @@
           <div class="step">
             <div class="step-num">3</div>
             <div>
-              <strong>Ative a Conexão Local</strong><br>
-              Ligue a chave abaixo para o App se conectar ao seu Termux rodando no background.
+              <strong>Acesse a IDE Antigravity Emulada</strong><br>
+              <ul style="text-align: left; opacity: 0.8; margin-top: 10px;">
+                <li>Ao terminar, digite <code style="padding: 2px 5px; background: rgba(0,0,0,0.5); border-radius: 4px;">proot-distro login antigravity-os</code></li>
+                <li>Dentro do Ubuntu, digite <code style="padding: 2px 5px; background: rgba(0,0,0,0.5); border-radius: 4px;">code-server</code> e de Enter.</li>
+                <li>Abra o navegador do celular em <strong>http://localhost:8080</strong> para a tela cheia.</li>
+                <li>Onde ele pede a senha, digite a listada no Terminal. Depois é só instalar o pacote `.vsix` do Antigravity na aba Extensions!</li>
+              </ul>
             </div>
           </div>
         </div>
