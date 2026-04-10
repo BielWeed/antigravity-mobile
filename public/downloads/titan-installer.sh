@@ -23,7 +23,7 @@ echo "Baixando o VS Code Server Oficial (x64) para rodar a VSIX..."
 curl -fsSL https://code-server.dev/install.sh | sh
 echo "Preparando portal de acesso..."
 mkdir -p ~/.config/code-server
-echo "bind-addr: 0.0.0.0:8080" > ~/.config/code-server/config.yaml
+echo "bind-addr: 127.0.0.1:8080" > ~/.config/code-server/config.yaml
 echo "auth: none" >> ~/.config/code-server/config.yaml
 echo "cert: false" >> ~/.config/code-server/config.yaml
 EOF
@@ -44,5 +44,5 @@ echo ""
 echo " Va na aba Extensions e instale o .vsix do Antigravity!"
 echo "===================================================="
 
-# Auto-start code server inside the Ubuntu VM
-proot-distro login antigravity-os --bind /dev/null:/proc/sys/kernel/cap_last_cap -- code-server
+# Auto-start code server inside the Ubuntu VM with safe flags
+proot-distro login antigravity-os --bind /dev/null:/proc/sys/kernel/cap_last_cap -- code-server --disable-telemetry --disable-update-check
