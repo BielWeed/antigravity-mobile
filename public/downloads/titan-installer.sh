@@ -21,6 +21,8 @@ echo "Atualizando Container Ubuntu x64..."
 apt update && apt install curl wget git build-essential -y
 echo "Baixando o VS Code Server Oficial (x64) para rodar a VSIX..."
 curl -fsSL https://code-server.dev/install.sh | sh
+echo "Acelerando Timeout de Handshake do Wrapper (Patch QEMU)..."
+sed -i 's/10000/60000/g' /usr/lib/code-server/out/node/wrapper.js
 echo "Preparando portal de acesso..."
 mkdir -p ~/.config/code-server
 echo "bind-addr: 127.0.0.1:8080" > ~/.config/code-server/config.yaml
