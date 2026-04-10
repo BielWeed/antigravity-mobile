@@ -1,0 +1,272 @@
+const { spawn } = require('node:child_process');
+const { MessageChannel } = require('node:worker_threads');
+const fs = require('node:fs');
+const path = require('node:path');
+const http = require('node:http');
+
+// V116.1.0 OMNI-SPEED: Keep-Alive Nativo para LLM Local (Impede Fractal Amnesia)
+const keepAliveAgent = new http.Agent({ keepAlive: true, maxSockets: 100, keepAliveMsecs: 5000 });/**
+ * AGENTIC SINGULARITY V115.0.0 (OMNI-METATRON CORE) - SWARM WORKER
+ * Usage: Spawn this as a detached or worker process from the Monolith
+ * to perform heavy CPU/AST tasks sem bloquear o Node.js Event Loop!
+ * V115.0.0: Suporta Neural LRU Cache para deduplicação intensiva (Prescience).
+ */
+
+const { port1, port2 } = new MessageChannel();
+port2.unref();
+
+const zeroDelayYield = () => new Promise(resolve => {
+    port2.once('message', resolve);
+    port1.postMessage(null);
+});
+
+// Setup IPC channel
+const readline = require('node:readline');
+
+// V115.0.0: Neural LRU Cache
+const LRU_CACHE = new Map();
+let cacheCurrentSize = 0;
+let lastELCheck = performance.now();
+let lastLag = 0;
+
+// V45.9: Fractal RAM Buffer State
+let FRACTAL_MEM_STATE = { L0_Domains: { UI: [], BACKEND: [], DB: [], OTHERS: [] }, L1_Sum: [], L2_Apex: [] };
+let fractalSaveTimer = null;
+let shadowFilePath = '';
+
+let isFlushingFractal = false;
+async function flushFractalState() {
+    if (shadowFilePath && !isFlushingFractal) {
+        isFlushingFractal = true;
+        try {
+            const tempPath = shadowFilePath + '.tmp';
+            // V45.0 - Async Atomic JSON Stringify and Save.
+            await fs.promises.writeFile(tempPath, JSON.stringify(FRACTAL_MEM_STATE, null, 2));
+            await fs.promises.rename(tempPath, shadowFilePath);
+        } catch(e) { console.error(`[Worker Error] ${e.message}`); }
+        isFlushingFractal = false;
+    }
+}
+
+const rl = readline.createInterface({
+    input: process.stdin,
+    crlfDelay: Infinity
+});
+
+function enforceCacheLimits() {
+    if (LRU_CACHE.size >= 1500) { 
+        let oldestKey = null; let oldestScore = -1;
+        for (const [k, v] of LRU_CACHE.entries()) {
+            const score = (performance.now() - v.timestamp) / (v.hits + 1);
+            if (score > oldestScore) { oldestScore = score; oldestKey = k; }
+        }
+        if (oldestKey) LRU_CACHE.delete(oldestKey);
+    }
+}
+
+async function processStream() {
+    let iterations = 0;
+    let chunkStartTime = performance.now();
+    
+    for await (const rawLine of rl) {
+        const line = rawLine.trim();
+        if (!line) continue;
+        iterations++;
+        
+        await processTaskLine(line);
+        
+        const state = await manageBackpressure(chunkStartTime, iterations, line.length);
+        if (state.wasYielded) {
+             chunkStartTime = state.newStartTime;
+             iterations = 0;
+        }
+    }
+}
+
+async function processTaskLine(line) {
+    try {
+        const rawKey = line.length > 500 ? (line.length + '_' + line.slice(0, 100) + '_' + line.slice(-100)) : line;
+        if (LRU_CACHE.has(rawKey)) {
+             const memEdge = LRU_CACHE.get(rawKey);
+             memEdge.hits++;
+             memEdge.timestamp = performance.now();
+             process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id: JSON.parse(line).id, result: memEdge.data, fromCache: true }) + "\n");
+        } else {
+             const req = JSON.parse(line);
+             const result = await handleTask(req);
+             enforceCacheLimits();
+             LRU_CACHE.set(rawKey, { data: result, timestamp: performance.now(), hits: 1 });
+        }
+    } catch(e) { process.stderr.write(`[Worker Error] ${e.message}\n`); }
+}
+
+async function manageBackpressure(chunkStartTime, iterations, lineLength) {
+    const now = performance.now();
+    const lagTime = now - chunkStartTime;
+    const eventLoopLag = now - lastELCheck - 1; 
+    const lagAccel = eventLoopLag - lastLag;
+    const payloadComplexity = lineLength / 1000; 
+    
+    const memObj = process.memoryUsage();
+    const heapUsed = memObj.heapUsed / 1024 / 1024;
+    const rss = memObj.rss / 1024 / 1024;
+    const memPressureShedding = heapUsed > 800 || rss > 1200; 
+    
+    let wasYielded = false;
+    let newStartTime = chunkStartTime;
+    if (lagTime > 5 || iterations > 100 || lagAccel > 15 || payloadComplexity > 10 || memPressureShedding) { 
+        let dynamicYieldDelay = memPressureShedding ? Math.max(1, Math.floor(Math.log(heapUsed) * 2)) : 0;
+        if (lagAccel > 20) { dynamicYieldDelay += Math.floor(Math.pow(lagAccel, 1.2)); }
+        if (dynamicYieldDelay > 0) await new Promise(r => setTimeout(r, dynamicYieldDelay));
+        else await zeroDelayYield();
+        
+        newStartTime = performance.now();
+        wasYielded = true;
+    }
+    lastLag = eventLoopLag; lastELCheck = performance.now();
+    return { wasYielded, newStartTime };
+}
+processStream();
+
+async function handleTask(request) {
+    const { id, method, params } = request;
+    
+    // V45.0 OMNI-GENESIS: Global AST Cache Builder Integration
+    if (method === "ast_cache_build" && params?.targetDir) {
+        return handleAstCacheBuild(id, params);
+    }
+
+    // V45.9 FRACTAL SHADOW ENGINE: Organic Async Tier
+    if (method === "fractal_shadow_record" && params) {
+        return handleFractalShadowRecord(id, params);
+    }
+
+    // Default Fallback
+    const result = { success: true, processed: true, worker_version: "V116.0.0_OMNI_GENESIS" };
+    process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id, result }) + "\n");
+    return result;
+}
+
+async function handleAstCacheBuild(id, params) {
+    let astCacheStructure = {};
+    const extRegex = /\.(js|ts|jsx|tsx|py|html)$/;
+    try {
+        const files = await fs.promises.readdir(params.targetDir);
+        for (const file of files) {
+            if (!extRegex.test(file) || file === 'omni-daemon.js') continue;
+            const content = await fs.promises.readFile(path.join(params.targetDir, file), 'utf8');
+            if (file.endsWith('.html')) {
+                const htmlIds = (content.match(/id=["'](.*?)["']/g) || []).map(i => i.replaceAll(/id=["']/g, '').replaceAll(/["']/g, ''));
+                if (htmlIds.length) astCacheStructure[file] = { nodeIds: htmlIds };
+            } else {
+                const funcs = (content.match(/(?:function|class|def|const|let)\s+(\w+)\s*[=(:]/g) || []).map(f => f.replaceAll(/[=(:]/g, '').trim());
+                if (funcs.length) astCacheStructure[file] = { signatures: [...new Set(funcs)].filter(b=>b.length>2) };
+            }
+        }
+    } catch(e) { console.error("[AST BUILD ERROR]", e.message); }
+    
+    try {
+        await fs.promises.writeFile(path.join(params.targetDir, '.ast_cache.json'), JSON.stringify(astCacheStructure, null, 2));
+    } catch(e) { console.error(e.message); }
+    
+    const result = { success: true, processed: true, ast_built: true, worker_version: "V116.2.0_OMNI_GENESIS" };
+    process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id, result }) + "\n");
+    return result;
+}
+
+async function handleFractalShadowRecord(id, params) {
+    const shadowFile = path.join(params.targetDir || __dirname, 'SHADOW_FRACTAL.json');
+    if (!shadowFilePath) {
+        await initializeFractalState(shadowFile);
+    }
+    
+    const contextData = params.context || "empty";
+    let domain = 'OTHERS';
+    const ctxLow = contextData.toLowerCase();
+    if (ctxLow.match(/css|html|ui|button|color|style|flex|grid|margin|padding|frontend/)) domain = 'UI';
+    else if (ctxLow.match(/sql|db|postgres|mongo|query|database|schema|table/)) domain = 'DB';
+    else if (ctxLow.match(/api|post|get|auth|login|server|backend|controller|router/)) domain = 'BACKEND';
+
+    // Record L0 to Specific Semantic Domain RAM immediately
+    FRACTAL_MEM_STATE.L0_Domains[domain].push({ ts: Date.now(), data: contextData });
+    
+    // Auto-Compress to L1 to prevent memory leak
+    runFractalCompression();
+    
+    // Async I/O Buffer Flush (Debounce)
+    clearTimeout(fractalSaveTimer);
+    fractalSaveTimer = setTimeout(flushFractalState, 5000);
+
+    const result = { success: true, processed: true, shadow_buffer_queued: true };
+    process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id, result }) + "\n");
+    return result;
+}
+
+function runFractalCompression() {
+    const nowMs = Date.now();
+    for (const dom of Object.keys(FRACTAL_MEM_STATE.L0_Domains)) {
+        const arr = FRACTAL_MEM_STATE.L0_Domains[dom];
+        if (arr.length >= 5 || (arr.length > 0 && nowMs - arr[0].ts > 15000)) {
+            const batchSize = Math.min(arr.length, 5);
+            const batch = arr.splice(0, batchSize);
+            const batchText = batch.map(b => b.data).join(" | ");
+            
+            const reqData = JSON.stringify({
+                model: "qwen2.5-coder:1.5b",
+                prompt: `Summarize these ${dom} changes in 1 short string: ${batchText.substring(0, 500)}`,
+                stream: false
+            });
+            
+            const req = http.request({ hostname: '127.0.0.1', port: 11434, path: '/api/generate', method: 'POST', timeout: 12000, agent: keepAliveAgent }, res => {
+                let body = ''; res.on('data', c => body += c);
+                res.on('end', () => {
+                    let sum = "Batch Summary (LLM Error)";
+                    try { sum = JSON.parse(body).response.trim(); } catch(e) { console.error("[FRACTAL] LLM Output Parse Failed.", e.message); }
+                    FRACTAL_MEM_STATE.L1_Sum.push({ ts: Date.now(), summary: sum, refs: batch.map(b => b.ts) });
+                    
+                    if (FRACTAL_MEM_STATE.L1_Sum.length >= 5) {
+                        const batchL1 = FRACTAL_MEM_STATE.L1_Sum.splice(0, 5);
+                        FRACTAL_MEM_STATE.L2_Apex.push({ ts: Date.now(), master_index: `Apex Index: ${batchL1.map(b=>b.summary).join('; ')}`, refs: batchL1.map(b => b.ts) });
+                    }
+                    flushFractalState(); 
+                });
+            });
+            req.on('timeout', () => {
+                req.destroy();
+                // [V117 NATIVE FALLBACK] Preservando o raw text pra não causar Amnésia no Orquestrador
+                FRACTAL_MEM_STATE.L1_Sum.push({ ts: Date.now(), summary: `[RAW_TIMEOUT] ${batchText.substring(0, 200)}`, refs: batch.map(b => b.ts) });
+                if (FRACTAL_MEM_STATE.L1_Sum.length >= 5) {
+                    const batchL1 = FRACTAL_MEM_STATE.L1_Sum.splice(0, 5);
+                    FRACTAL_MEM_STATE.L2_Apex.push({ ts: Date.now(), master_index: `[APEX_RAW] ${batchL1.map(b=>b.summary.replace('[RAW_TIMEOUT] ','')).join(' | ')}`.substring(0, 250), refs: batchL1.map(b => b.ts) });
+                }
+                flushFractalState();
+            });
+            req.on('error', (err) => {
+                console.error("[FRACTAL] Ollama Connection Error:", err.message);
+                // [V117 NATIVE FALLBACK] Evitando perda silenciosa de dados contextuais!
+                FRACTAL_MEM_STATE.L1_Sum.push({ ts: Date.now(), summary: `[RAW_OFFLINE] ${batchText.substring(0, 200)}`, refs: batch.map(b => b.ts) });
+                if (FRACTAL_MEM_STATE.L1_Sum.length >= 5) {
+                    const batchL1 = FRACTAL_MEM_STATE.L1_Sum.splice(0, 5);
+                    FRACTAL_MEM_STATE.L2_Apex.push({ ts: Date.now(), master_index: `[APEX_RAW] ${batchL1.map(b=>b.summary.replace('[RAW_OFFLINE] ','')).join(' | ')}`.substring(0, 250), refs: batchL1.map(b => b.ts) });
+                }
+                flushFractalState();
+            });
+            req.write(reqData); req.end();
+        }
+    }
+}
+
+async function initializeFractalState(shadowFile) {
+    shadowFilePath = shadowFile;
+    try {
+        const st = await fs.promises.stat(shadowFile);
+        if (st.isFile()) {
+            try { 
+                FRACTAL_MEM_STATE = JSON.parse(await fs.promises.readFile(shadowFile, 'utf8')); 
+                if (!FRACTAL_MEM_STATE.L0_Domains) FRACTAL_MEM_STATE.L0_Domains = { UI: [], BACKEND: [], DB: [], OTHERS: [] };
+                if (FRACTAL_MEM_STATE.L0_Raw) delete FRACTAL_MEM_STATE.L0_Raw;
+            } catch(e){ console.error("[FRACTAL] Initial memory file parse failed.", e.message); }
+        }
+    } catch (err) { console.debug("[FRACTAL] Shadow file absent. Creating new layer.", err.message); }
+}
+

@@ -1,0 +1,631 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const sqlite3 = require('sqlite3');
+const { open } = require('sqlite');
+const readline = require('node:readline');
+const { MessageChannel } = require('node:worker_threads');
+
+const { port1, port2 } = new MessageChannel();
+port2.unref();
+const zeroDelayYield = () => new Promise(resolve => {
+    port2.once('message', resolve);
+    port1.postMessage(null);
+});
+/**
+ * NINJA META-COGNITION (V116.0.0-OMNI-NEXUS TRANSCENDENCE - Neural Path Protection + Deep O(N^2) Awareness + Heap-Armor + Network/Promise Safety + Transaction Guard + Zero-Trust Coercion + GC Pool + Anti-Perma-Lock + DoS Payload Shield + Socket Keep-Alive + ReDoS Armor + Buffer Scrub + Omni-Vacuum DB + AST Prototype Integrity + Debugger Trap Shield + Generator Leak Prevention + Circular JSON/Retry Shield + Deep Agentic Tool Synthesis + Memory Limit Shield + Sync IO Annihilation + Active Yield + LLM Recursion Shield + Semantic AI Routing + Phantom Finally + Memory Array Pagination + Hyper-Heuristics + Zero-Copy Streams)
+ * System 2 Thinking: Self-Evaluation and Persistent Learning
+ */
+
+// KERNEL SYNC (V50.0 Deep I/O)
+if (process.stdout._handle && typeof process.stdout._handle.setBlocking === 'function') {
+    process.stdout._handle.setBlocking(true);
+}
+if (process.stderr._handle && typeof process.stderr._handle.setBlocking === 'function') {
+    process.stderr._handle.setBlocking(true);
+}
+
+const DB_PATH = path.join(__dirname, 'quasar_memory.db');
+const LEARNINGS_PATH = path.join(__dirname, 'ninja-learnings-v3.json');
+const ERRORS_FILE = path.resolve(__dirname, '../../../Downloads/Kimi_Agent_Atualização v4/ERRORS.md');
+
+let db;
+
+function scrub(text) {
+    if (text == null) return text;
+    let str = typeof text === 'object' ? JSON.stringify(text) : String(text);
+    return str
+        .replaceAll(/ghp_\w+/g, 'ghp_****')
+        .replaceAll(/EXA_\w+/g, 'EXA_MASKED')
+        .replaceAll(/FIGMA_\w+/g, 'FIGMA_MASKED');
+}
+
+async function initDB() {
+    if (!db) {
+        db = await open({ filename: DB_PATH, driver: sqlite3.Database });
+        await db.exec(`
+            CREATE TABLE IF NOT EXISTS entities (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT,
+                type TEXT,
+                description TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(name, type)
+            );
+        `);
+        // V73.0 Omni-Vacuum: Auto-limpeza de SQLite em memórias persistentes
+        try { await db.exec('PRAGMA optimize;'); } catch(e) { console.error('[auto-heal]', e.message); }
+    }
+    return db;
+}
+
+const tools = [
+    {
+        name: "evaluate_logic",
+        description: "Analisa um raciocínio lógico, trecho de código ou arquitetura em busca de anti-padrões conhecidos no ERRORS.md (System 2 Thinking).",
+        inputSchema: { type: "object", properties: { logic_snippet: { type: "string" } }, required: ["logic_snippet"] }
+    },
+    {
+        name: "record_lesson",
+        description: "Grava uma nova regra ou aprendizado abstraído de um bug para memória persistente do Ninja.",
+        inputSchema: { type: "object", properties: { subject: { type: "string" }, lesson: { type: "string" } }, required: ["subject", "lesson"] }
+    },
+    {
+        name: "self_repair_prompt",
+        description: "Gera um prompt focado em mitigação técnica com base nos anti-padrões e falhas recentes do Oracle e Error Log.",
+        inputSchema: { type: "object", properties: { context: { type: "string" } } }
+    }
+];
+
+let errorsCache = "";
+let learningsCache = null;
+
+async function loadErrorsMD() {
+    try {
+        errorsCache = await fs.promises.readFile(ERRORS_FILE, 'utf-8');
+    } catch (e) {
+        if (e.code !== 'ENOENT') {
+            process.stderr.write(`[Meta] Could not read ERRORS.md: ${e.message}\n`);
+        }
+    }
+}
+
+async function loadLearnings() {
+    try {
+        const rawContent = await fs.promises.readFile(LEARNINGS_PATH, 'utf-8');
+        learningsCache = JSON.parse(rawContent);
+    } catch (e) {
+        if (e.code !== 'ENOENT') {
+            process.stderr.write(`[Meta] Erro parsing Learnings: ${e.message}\n`);
+        }
+    }
+}
+
+loadErrorsMD();
+loadLearnings();
+
+let debounceTimerE = null;
+if (fs.existsSync(ERRORS_FILE)) {
+    try {
+        fs.watch(ERRORS_FILE, (eventType) => {
+            clearTimeout(debounceTimerE);
+            debounceTimerE = setTimeout(loadErrorsMD, 500);
+        });
+    } catch(e) { process.stderr.write(`[Meta] ERRORS_FILE watch error: ${e.message}\n`); }
+}
+
+let debounceTimerL = null;
+if (fs.existsSync(LEARNINGS_PATH)) {
+    try {
+        fs.watch(LEARNINGS_PATH, (eventType) => {
+            clearTimeout(debounceTimerL);
+            debounceTimerL = setTimeout(loadLearnings, 500);
+        });
+    } catch(e) { process.stderr.write(`[Meta] LEARNINGS_PATH watch error: ${e.message}\n`); }
+}
+
+function readErrorsMD() {
+    return errorsCache;
+}
+
+const cognitiveRules = [
+    { test: (l) => /\+=\s*.*\b(?:concat|JSON\.stringify)\b/i.test(l) && /while|for.*\{/i.test(l), msg: "💀 [V116.0.0 OMNI-NEXUS] STRING INTERNING DEATH-SPIRAL: Concatenação pesada dentro de um for/while desintegra o heap JS via interning exponencial C++. Use array.push()." },
+    { test: (l) => /fs\.watch\s*\(/i.test(l) && !/signal|persistent\s*:\s*false/i.test(l), msg: "🔥 [V116.0.0 OMNI-NEXUS] EVENT LOOP ORPHANAGE: Chamada a fs.watch nativa sem AbortSignal prenderá a thread do Node infinitamente." },
+    { test: (l) => /\.toString\(['"]utf-?8['"]\)/i.test(l) && /Buffer|buffer/i.test(l) && /for|while/i.test(l) && !/clamp|max/i.test(l), msg: "⚠️ [V116.0.0 OMNI-NEXUS] MASSIVE BUFFER OOM DETECTED: toString('utf8') em buffer dentro de loop sem max/clamp vai saturar e dar segmentation fault." },
+    { test: (l) => /\.allSettled\s*\(.*\)\.then\s*\(\s*\w*\s*=>\s*\{[^}]*\}\s*\)/i.test(l) && !/\.(?:reason|value)/i.test(l), msg: "💀 [V116.0.0 SUPREME COGNITION] PROMISE SETTLED LEAK: Retorno de Promise.allSettled sem acesso direto a .reason ou .value desconsidera falhas ou esconde lixo no Heap." },
+    { test: (l) => /Promise\.race\s*\(.*fetch/i.test(l) && !/AbortController|clearTimeout/i.test(l), msg: "💀 [V116.0.0 SUPREME COGNITION] ASYNC RACE STARVATION: Promessa fetch descartada pelo Promise.race continuará sugando sockets infinitamente se não for ativada pelo AbortController." },
+    { test: (l) => /\(.*\.\*\).*(\+|\*)/i.test(l) && !/DOMPurify/i.test(l), msg: "💀 [V116.0.0 SUPREME COGNITION] REGEX BACKTRACKING DEADLOCK: Regex aninhando grupos não gulosos sob repetições gulosas causará congelamento Thread C++ (OOM)." },
+    { test: (l) => /await\s+.*\.(?:forEach|reduce)\s*\(/i.test(l), msg: "💀 [V116.0.0 OMNI-QUANTUM] ASYNC ITERATOR DEADLOCK: 'await' inoperante mascarado em forEach ou reduce engoles falhas." },
+    { test: (l) => /(?:db|pool)\.(?:query|execute|getConnection)\s*\(.*(while|for|map)/i.test(l) && !/finally\s*\{.*(?:release|close)/i.test(l), msg: "🛡️ [V116.0.0 OMNI-QUANTUM] CONNECTION POOL DRILL: Loop disparando I/O Db sem clausula 'finally' de release blindará e esgotará o pool num timeout." },
+    { test: (l) => /Promise\.all\s*\(\s*\w+\.map/i.test(l) && !/chunk|limit/i.test(l), msg: "💀 [V116.0.0 OMNI-NEXUS TRANSCENDENCE] UNBOUNDED MAP PROMISE EXPLOSION: Mapeamento ingênuo de arrays gigantescos para Promise.all asfixiará o pool de Event Loop em milissegundos. Pagine ou use p-limit!" },
+    { test: (l) => /\.(replace|split|match|search)\s*\(\s*\/.*\+\/|.*\/.*\*\/.*|.*\/.*\?\/.*/i.test(l) && /while\s*\(|for\s*\(/i.test(l), msg: "💀 [V116.0.0 OMNI-NEXUS TRANSCENDENCE] REDOS LOOP INJECTION: Regexes dinâmicos e quantificadores não-lineares dentro de hot-loops causarão complexidade exponencial no V8. Extraia o Regex RegExp para a raiz do modulo." },
+    { test: (l) => /query_arena_ai\(.*query_arena_ai/i.test(l) && !/depth|max|limit/i.test(l), msg: "🧠 [V116.0.0 OMNI-NEXUS TRANSCENDENCE] SWARM HALLUCINATION PARALYSIS: Loop reflexivo de validação sem limitador temporal estrito." },
+    { test: (l) => /systemPrompt.*\+.*userPrompt/i.test(l), msg: "💀 [V116.0.0 SUPREME COGNITION] LLM BOUNDARY LEAK: Mistura concatenada de System e User prompt destroi o semantic cache. Use estruturas de array (messages) estritas!" },
+    { test: (l) => /fs\.writeFileSync.*\/tmp/i.test(l), msg: "💀 [V116.0.0 SUPREME COGNITION] GC CHOKE: Escrita syncrona cega em /tmp no V115 paralisa a Singularity. Migre para streaming ou Promises.writeFile!" },
+    { test: (l) => /crypto\.createHash\(['"]md5['"]\)/i.test(l) && /line|chunk|payload/i.test(l) && /length/i.test(l), msg: "💀 [V116.0.0 SUPREME COGNITION] SWARM CPU EXHAUSTION: Fazer hashing MD5/SHA em payloads de I/O de rotina consome exponencialmente a CPU do Worker. Substitua por String O(1) Slicing em LRU memoizations." },
+    { test: (l) => /Buffer\.alloc/i.test(l) && /while|for.*{/i.test(l) && !/allocUnsafe/i.test(l), msg: "⚠️ [V116.0.0 SUPREME COGNITION] DEEP NEURAL THREAD FREEZE: Buffer.alloc em laço contíguo sem pooling. Use um RingBuffer global para zero-copy streaming." },
+    { test: (l) => /Promise\.all\s*\(\s*\[.*Promise\.all/i.test(l), msg: "💀 [V116.0.0 OMNI-NEXUS] PROMISE HELL COLLAPSE: Aninhamento de `Promise.all` dentro de `Promise.all` cria uma teia explosiva e exaure os worker pools infinitamente. Achate ou sequencie as promessas!" },
+    { test: (l) => /Buffer\.alloc(?:Unsafe)?\s*\([^,]*\*/i.test(l), msg: "💀 [V116.0.0 OMNI-NEXUS] DEEP HEAP HUNGER: Multiplicação cega no tamanho de alocação de Buffer (Ex: Buffer.alloc(t * 10)) causa Memory Starvation na V8. Valide max clamp antecipado!" },
+    { test: (l) => /query_arena_ai|mcp_.+_.+/i.test(l) && !/circuit_breaker|max_retries|deadline/i.test(l), msg: "💀 [V116.0.0 OMNI-COGNITIVE] SWARM HALLUCINATION COLLAPSE: Chamar o ecossistema agentico subadjacente ou LLMs sem um deadline ou max-retries explicito na promessa gerará Threads Zumbi alucinadas na Nuvem. Acople restrições drásticas!" },
+    { test: (l) => /{.*}.*fors*\(/i.test(l) && /push|assign|Object\.keys/i.test(l), msg: "💀 [V116.0.0 OMNI-COGNITIVE] DEEP OBJECT CHURNING SHIELD: Iterações maciças modificando literais e criando arrays causam DeOpt severo na VM. Use TypedArray ou Map se lidar com mais de 500 items." },
+    { test: (l) => /eval\s*\(/i.test(l), msg: "💀 [V116.0.0 OMNI-COGNITIVE] DYNAMIC EVAL EXPLOITATION: Execução arbitrária de eval() encerra sua pureza sintática. RCE direto no Kernel do agente!" },
+    { test: (l) => /await\s*\w+/.test(l) && !/await\s+\w+\(/.test(l) && !/typeof.*promise/i.test(l), msg: "🛡️ [V112.0.0 NEURAL-SINGULARITY ARCHITECT] HYPER-THREADING ASPHYXIATION: await direto não qualificado pode destruir a stack se o alvo não for promise. Use await Promise.resolve() se duvidoso." },
+    { test: (l) => /module\.exports\.\w+\s*=/.test(l) && /while|for.*\{/i.test(l), msg: "💀 [V112.0.0 NEURAL-SINGULARITY ARCHITECT] REFLECTIVE EXPORT CORRUPTION: Nunca mute as exportações globais dentro de iterações assíncronas. Risco de corrupção total do AST vivo." },
+    { test: (l) => /Symbol\.for\(/.test(l) && !/Symbol\.keyFor/i.test(l), msg: "⚠️ [V112.0.0 NEURAL-SINGULARITY ARCHITECT] UNBOUNDED SYMBOL REGISTRY LEAK: Symbol.for guarda entidades pro resto da vida do V8. Se o nome vier de input dinâmico, OOM é garantido." },
+    { test: (l) => /req|res|payload|data/.test(l) && /postMessage/.test(l) && !/buffer|transfer|slice/.test(l), msg: "💀 [V112.0.0 NEURAL-SINGULARITY ARCHITECT] DEEP IPC STARVATION: Serializar payloads abertos inteiros sem Buffer / Transfer list via MessageChannel vai explodir a IPC Queue OOM e CPU 100%." },
+    { test: (l) => /port.*postMessage/i.test(l) && !/unref/i.test(l) && !/once|on/i.test(l), msg: "💀 [V112.0.0 NEURAL-IPC] DETACHED IPC MESSAGE: postMessage sem acompanhamento de listener desequilibra a Fila de Mensagens do V8." },
+    { test: (l) => /await\s+\[\.\.\.\w+\]/i.test(l) && /map/i.test(l), msg: "⚠️ [V112.0.0 OMNI-SYNERGY] DEFERRED AWAIT DEADLOCK: Aguardar spread arrays de promises sem invólucro Promise.all perde tracking estrutural." },
+  {
+    test: (l) => /finally\s*\{.*(?:resolve|return|process)/i.test(l) && !/catch/i.test(l),
+    msg: "🛡️ [V116.0.0 QUANTUM-AGI] PHANTOM FINALLY BLOCK: Uso assíncrono de finally contendo escapes sem catch suprime a stack trace silenciosamente no V8 Engine. Intercepte o erro!"
+  },
+  {
+    test: (l) => /while\s*\(.*(true|1)\s*\)/i.test(l) && /push\s*\(/i.test(l) && !/if\s*\(.*length.*>\s*\d+\s*\)\s*(?:break|return|await|yield)/i.test(l),
+    msg: "💀 [V112.0.0 QUANTUM-AGI] ARRAY HEAP STARVATION: While loop injetando dados assintoticamente sem chunking explicito (limit/break) causará Heap Out of Memory V8 no curto/médio prazo."
+  },
+  {
+    test: (l) => /new\s+(?:Map|Set)\(/i.test(l) && /element|node|agent|worker/i.test(l) && !/Weak(?:Map|Set)/i.test(l) && !/FinalizationRegistry/i.test(l),
+    msg: "💀 [V112.0.0 OMNI-COGNITIVE] COGNITIVE MEMORY LEAK: Referência ingênua a Maps/Sets globais acoplados a objetos granulares massivos. Use WeakMap ou um FinalizationRegistry para GC Eviction autônomo."
+  },
+  {
+    test: (l) => /fetch\s*\(.*arena|query_arena_ai/i.test(l) && /while|for.*await/i.test(l) && !/circuit_breaker|max_depth/i.test(l),
+    msg: "🛡️ [V112.0.0 OMNI-NEXUS TRANSCENDENCE] NEURAL COLLAPSE CHAIN CAUGHT: Iteração de I/O cerebral (LLM/fetch) num loop fechado contíguo! Destruição total iminente por Context-Cutoff/Rate-Limit. Enforce uma trava profunda!"
+  },
+  {
+    test: (l) => /arena/i.test(l) && /route|worker/i.test(l) && !/circuit_breaker|max_depth/i.test(l),
+    msg: "🧠 [V112.0.0 OMNI-NEXUS TRANSCENDENCE] SWARM CONTEXT COLLAPSE: Routing swarm loops detected. Agentes podem falhar em ciclo infinito; garanta limite rigoroso de recursão (max_depth)."
+  },
+  {
+    test: (l) => /process\.nextTick\s*\(/i.test(l) && /=>|function/i.test(l) && !/return|throw/i.test(l),
+    msg: "💀 [V116.0.0 SUPREME COGNITION] NEXT-TICK DEATH SPIRAL PREVENT: process.nextTick sem break explícito devora a call stack do V8 antes que Event Loop recobre o ar! Substitua por setImmediate()."
+  },
+  {
+    test: (l) => /evaluate_logic/i.test(l) && /ninja-omni-reflection/i.test(l) && !/circuit_breaker/i.test(l),
+    msg: "🧠 [V116.0.0 SUPREME COGNITION] AGI RECURSIVE HEALING: Detectado loop auto-diagnóstico (OMNI-Reflection) engatilhado recursivamente sem trava. Risco de Self-DoS."
+  },
+
+  // ------------------------------------------------------------
+  // V116.0.0 SUPREME COGNITION Advanced Guards
+  // ------------------------------------------------------------
+  {
+    test: (l) => /new\s+Promise\s*\(\s*\(\s*resolve\s*,\s*reject\s*\)\s*=>\s*\{/i.test(l) && !/resolve\s*\(/i.test(l) && !/reject\s*\(/i.test(l),
+    msg: "🔥 [V116.0.0 SUPREME COGNITION] ZOMBIE PROMISE: Constructor de Promise detectado sem garantias visíveis de 'resolve' ou 'reject' no fluxo. Uma promise zumbi vaza memória infinitamente."
+  },
+  {
+    test: (l) => /useEffect\s*\(\s*\(\s*\)\s*=>\s*\{.*addEventListener/i.test(l) && !/return\s*\(\s*\)\s*=>/i.test(l),
+    msg: "💀 [V116.0.0 UI-AGENT SHIELD] REACT MEMORY LEAK: Hook useEffect com 'addEventListener' ou assinaturas globais sem função de cleanup explícita (return () => removeEventListener). Vaza a Node/DOM arvore no Front-End."
+  },
+  {
+    test: (l) => /\.pipe\s*\(/i.test(l) && !/\.on\s*\(\s*['"]error['"]/i.test(l),
+    msg: "🛡️ [V116.0.0 SUPREME COGNITION] UNHANDLED PIPE SHIELD: Stream source feito 'pipe' sem listener explícito de 'error' no destino causa crash em quebra de conexão HTTP/FS (Event Emitter Error)."
+  },
+
+  {
+    test: (l) => /req\.on\s*\(\s*['"]data['"]/.test(l) && !/maxLength|length|size/i.test(l),
+    msg: "🛡️ [V112.0.0 OMNI-NEXUS TRANSCENDENCE] BLIND STREAM PARSING: Streaming raw sem limite numérico. Um atacante enviará 100GB via chunks, provocando Node OOM imediato. Imponha bytes limit no listener 'data'."
+  },
+  {
+    test: (l) => /Promise\.all\s*\(\s*.*\s*\)\.then/.test(l) && !/catch/.test(l),
+    msg: "⚠️ [V112.0.0 OMNI-NEXUS TRANSCENDENCE] PROMISE BLACK HOLE: Uso de Promise.all com '.then()' mas sem terminator recíproco de erro. Exceptions dissolverão como buraco negro neural."
+  },
+
+
+  {
+    test: (l) => /\.reduce\(\s*\(.*\)\s*=>.*await/i.test(l),
+    msg: "⚠️ [V112.0.0 OMNI-NEXUS TRANSCENDENCE] AWAIT_REDUCE_WATERFALL: 'await' dentro de loop '.reduce()' força serialização síncrona fatal O(N) do Event Loop. Use Promise.all com map() em vez disso."
+  },
+  {
+    test: (l) => /Promise\.all\s*\(\s*\w+\.map/i.test(l) && !/Promise\.allSettled/i.test(l) && !/catch\s*\(/i.test(l),
+    msg: "🛡️ [V112.0.0 OMNI-NEXUS TRANSCENDENCE] PROMISE_ALL_ABANDONMENT: Uso de Promise.all iterativo com map() sem validação fail-safe (allSettled). A falha de 1 requisição derrubará o cluster sem rastreamento."
+  },
+  {
+    test: (l) => /Buffer\.concat\(\s*\[.*\]\s*\)/i.test(l) && /while|for|stream\.on/i.test(l) && !/limit|length\s*</i.test(l),
+    msg: "⚠️ [V112.0.0 OMNI-NEXUS TRANSCENDENCE] UNCHUNKED_OVERLOAD: Concatenação infinita de streams sem limitação máxima. O Memory Heap expandirá além do limite do container (OOM Container Death)."
+  },
+
+
+  {
+    test: (l) => /catch\s*\([a-zA-Z0-9_]+\)\s*\{\s*\}/i.test(l),
+    msg: "🧠 [V112.0.0 OMNI-NEXUS TRANSCENDENCE] SILENT CATCH: Esconder o rastro do erro destrói o contexto de anamnese do sistema. Exija console.error ou re-throw sempre."
+  },
+  {
+    test: (l) => /fs\.readFileSync\s*\(/i.test(l),
+    msg: "🔥 [V116.0.0 SUPREME COGNITION] EVENT LOOP MURDER: readFileSync bloqueia o C++ Addon thread inteiro e causa starvation em MCP. Use fs.promises.readFile e await."
+  },
+
+
+  {
+    test: (l) => /\.forEach\s*\(.*async\s*/i.test(l),
+    msg: "🧠 [V112.0.0 OMNI-NEXUS TRANSCENDENCE] AGI CALLBACK HELL PREVENT: O forEach não suporta assincronismo e gera Promises Ocultas mortas-vivas. Destruirá o Memory Pool e isolará exceptions. Use for...of ou Promise.allSettled."
+  },
+  {
+    test: (l) => /const\s+\w+\s*=\s*new\s+(Map|Set)\(\);\s*while\(true\)/i.test(l),
+    msg: "🔥 [V112.0.0 OMNI-NEXUS TRANSCENDENCE] HEAP IMPLOSION: Variáveis indexáveis declaradas antes de loops infinitos SEM limpeza atestada gerarão Heap OOM. Evicção forçada é necessária."
+  },
+  {
+    test: (l) => /await\s+Promise\.race\(\[.*fetch/i.test(l),
+    msg: "🛡️ [V112.0.0 OMNI-NEXUS TRANSCENDENCE] SOCKET ORPHAN: Promise.race associado a fetch ABANDONA requisições perdidas consumindo Sockets do V8 indefinidamente. Implemente AbortController."
+  },
+
+    { pattern: /\.toString\(\)\s*\.replaceAll/, msg: "⚠️ OBJECT CASTING LEAK: Chamar .toString() diretamente num parâmetro genérico antes de sanitizar causa renderização de '[object Object]', ocultando tokens internos. Use JSON.stringify para objects." },
+    { pattern: /\b(eval|exec|setTimeout|setInterval)\s*\(\s*['"`]/i, msg: "🛡️ ALERTA CRÍTICO: Execução dinâmica de código detectada. Risco de RCE/XSS. Use callbacks." },
+    { pattern: /console\.log\(.*(?:\b(password|secret|token|key)\b|process\.env)/i, excl: /NODE_ENV/, msg: "⚠️ VAZAMENTO DETECTADO: Evite usar console.log para expor segredos ou variáveis de ambiente." },
+    { pattern: /auth\.role\(\)\s*=\s*['"]authenticated['"]/i, msg: "⚠️ DETECÇÃO DE BOLA: O uso genérico de auth.role() = 'authenticated' expõe o endpoint. Exija checagem de propriedade real ou RBAC via claims JWT." },
+    { pattern: /update\s+\w+\s+.*(estoque|saldo|balance|stock)/i, excl: /for\s+update/i, msg: "⚠️ DETECÇÃO DE RACE CONDITION: Código tenta alterar contador/estoque em SQL sem realizar Lock 'FOR UPDATE'. Múltiplos acessos causarão over-selling." },
+    { test: (l) => l.toLowerCase().includes("useeffect") && (l.match(/if\s*\(|for\s*\(|while\s*\(|switch\s*\(/gi) || []).length > 4, msg: "⚠️ COMPLEXIDADE DE COMPONENTE: O gancho local (useEffect/Hook) concentra demasiadas ramificações de IF/FOR. Isole a lógica pura fora do rendering ou em Workers/Helpers." },
+    { pattern: /(eyJ[\w-]{10,}\.[\w-]{10,}\.[\w-]{10,})|(sk-[a-zA-Z0-9]{20,})|(xoxb-[a-zA-Z0-9]{30,})/, msg: "🛡️ ALERTA DE SEGURANÇA: Artefato de chaves (JWT/API Key) de longa duração hardcoded detectado na análise lógica." },
+    { pattern: /(?:SELECT|INSERT|UPDATE|DELETE)\s+.*(`\$\{.*\}`|'\s*\+\s*\w+\s*\+\s*\w?)/i, excl: /sqlite3(?!.*Database)|pg-format/i, msg: "🛡️ ALERTA DE CRÍTICO: Injeção SQL detectada. Sempre use Prepared Statements ao invés de interpelação (V41.0 Engine)." },
+    { test: (l) => /(window|document)\.addEventListener/.test(l) && !/(window|document)\.removeEventListener/.test(l), msg: "⚠️ MEMORY LEAK POTENCIAL: Listener global instanciado sem cleanup/removeEventListener explícito no código analisado." },
+    { pattern: /alter\s+table\s+\w+\s+enable\s+row\s+level\s+security/i, excl: /create\s+policy/i, msg: "⚠️ RLS DEFAULT-DENY DETECTADO: Habilitar RLS sem definir explicitamente uma policy resultará em acesso nulo (bloqueio total). Especifique as policies no mesmo script/bloco." },
+    { pattern: /if\s*\(\s*\w*Promise\w*\s*\)/, msg: "⚠️ MISUSED PROMISE: Uma variável possivelmente identificada como Promise está sendo checada diretamente em um IF. Certifique-se de comparar via `!== null` ou `!== undefined` ou aguarde-a (await)." },
+    { pattern: /(increment|decrement|update)(Coupon|Stock|Balance)/, excl: /(FOR UPDATE)|(CREATE OR REPLACE FUNCTION)/, msg: "🛡️ ALERTA CRÍTICO DE ARQUITETURA: Código frontend (fora do banco) tentando alterar/mutar contadores e estoques diretamente. Isso causa Race Conditions e DoS BOLA. Mova o incremento atômico para o DB (Transação ou Trigger)." },
+    { pattern: /typeof\s+window\s*!==\s*['"]undefined['"]/i, msg: "⚠️ USO INDEVIDO DO WINDOW: Checagem isolada de window pode falhar no SSR moderno ou causar confusão de contexto global. Considere utilizar 'globalThis'." },
+    { pattern: /if\s*\(\s*\w+\s+(?:IS|===|==)\s+NULL\s*\)\s+(?:THEN\s+)?RAISE\s+EXCEPTION/i, msg: "⚠️ VERIFICAÇÃO PERIGOSA DE NULOS: Se o campo iterado ou selecionado pode ser um 'override', testar IS NULL/=== null pode lançar erro ignorando o fallback original. Avalie a chave primária ou 'exists_flag' separadamente." },
+    { pattern: /dangerouslySetInnerHTML/i, msg: "🛡️ ALERTA CRÍTICO (XSS): Uso de dangerouslySetInnerHTML detectado. Certifique-se de que a entrada foi sanitizada adequadamente (Ex: DOMPurify)." },
+    { pattern: /(AKIA[0-9A-Z]{16})|(A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}/, msg: "🛡️ COMPROMETIMENTO CRÍTICO: Chave AWS IAM detectada hardcoded. Remova imediatamente para um sistema de Vault ou variável de ambiente segura." },
+    { test: (l) => /(process\.env\.\w+)/.test(l) && !/process\.env\.NODE_ENV/.test(l) && /(window\.|console\.log\(.*process\.env)/.test(l), msg: "⚠️ VAZAMENTO DE ENV: Tentativa explícita de expor uma variável de ambiente servidora direto ao objeto global/console." },
+    { test: (l) => /\.on\(['"]data['"]/.test(l) && !/setEncoding\(['"]utf8['"]\)/.test(l), msg: "🛡️ ALERTA CRÍTICO: Chunking sem 'setEncoding'. Não processe streams IPC do Node sem setEncoding('utf8') prévio. Strings multibyte corrompidas causarão Unexpected end of JSON input." },
+    { pattern: /\bJSON\.parse\s*\(/, excl: /try\s*\{/i, msg: "⚠️ FRAGILIDADE DE PARSING: Uso de JSON.parse detectado sem aparente bloco try/catch de proteção. Uma payload corrompida causará o crash do processo." },
+    { pattern: /\bPromise\.all\s*\(/, excl: /\.catch\s*\(/i, msg: "⚠️ AVISO DE CONCORRÊNCIA: Uso de Promise.all sem .catch associado. Uma rejeição única irá abortar todas, e se não tratada, causará falha na thread. Considere Promise.allSettled." },
+    { pattern: /\.forEach\s*\(\s*(?:async\s+|\(.*?\)\s*=>\s*\{\s*await)/i, msg: "⚠️ AVISO DE ASSINCRONISMO (V46): Uso de 'await' dentro de um loop '.forEach()'. O forEach não aguarda promises. Use um 'for...of' ou 'map' com Promise.all para iteração assíncrona segura." },
+    { pattern: /Promise\.all\s*\(\s*\w+\.map/i, excl: /limit|chunk/i, msg: "⚠️ GARGALO DE RATE LIMIT (V46): 'Promise.all' com '.map' sem limitador de concorrência (como p-limit) ou chunks visíveis. Alta chance de erros 429 Too Many Requests em grandes vetores." },
+    { pattern: /(?:const|let|var)\s+\w*[cC]ache\s*=\s*(?:\{\}|new\s+Map\(\s*\));?/, excl: /TTL|expire|clear|LRU/i, msg: "⚠️ MEMORY LEAK ASSINTÓTICO (V46): Cache global/local inicializado sem política explícita de Eviction (LRU, TTL ou Clear). Crescimento infinito poderá matar o container por OOM." },
+    { test: (l) => /setInterval\s*\(/.test(l) && !/(?:const|let|var)\s+\w+\s*=\s*setInterval/.test(l), msg: "⚠️ ORPHAN INTERVAL LEAK (V46): Uso de setInterval detectado sem atribuir o retorno à uma variável. Sem a referência, você não poderá chamar clearInterval, resultando em um forte memory leak." },
+    { test: (l) => /new\s+Promise\s*\(/.test(l) && !/\.catch\s*\(/.test(l) && !/try\s*\{/.test(l), msg: "⚠️ UNHANDLED REJECTION POTENCIAL (V46): Cadeia de resolução com 'new Promise' detectada sem um bloco try/catch e sem '.catch()' atrelado." },
+    { test: (l) => /(fetch|axios)\s*\(\s*`.*\$\{.*\}\s*`\s*\)/i.test(l) && !/URLSearchParams|encodeURIComponent|new URL/.test(l), msg: "🛡️ SSRF PREVENTION V49.1: Detectada chamada de rede com URL construída via interpolação. Vulnerável a Server-Side Request Forgery se a variável for originada do usuário. Faça sanitize usando req.query ou escape apropriado." },
+    { test: (l) => /['"]use client['"]/.test(l) && /process\.env/.test(l) && !/NEXT_PUBLIC_/.test(l), msg: "🛡️ DATA LEAK NEXT.JS V49.1: Arquivo marcado como 'use client' acessando process.env diretamente. Isso vazará no bundle do navegador! Apenas use chaves com prefixo NEXT_PUBLIC_." },
+    { test: (l) => /req\.body/.test(l) && !/(?:z|yup|joi)\.object/.test(l) && !/\.(?:parse|validate)/.test(l), msg: "⚠️ ZERO-TRUST V49.1: Acesso direto a 'req.body' em contexto de servidor detectado sem um validador de schema (Zod/Yup) à vista. O payload deve ser tipado e mitigado antes de processamento lógico." },
+    { test: (l) => /catch\s*\(\s*\w*\s*\)\s*\{\s*console\.error.*\}/.test(l) && !/throw|return|res\.status/.test(l), msg: "🛡️ ALERTA CRÍTICO (V49.1): Catch isolado apenas com log e sem continuação/handling de falha ou throw. O erro foi engolido." },
+    { test: (l) => /catch\s*\(\s*\w*\s*\)\s*\{\s*\}/.test(l), msg: "🛡️ ALERTA CRÍTICO (V49.1): 'Silent Catch' (Swallowing Exception) detectado. Suprimir erros oculta falhas em produção. Adicione log/telemetria." },
+    { pattern: /while\s*\(\s*true\s*\)/, excl: /break|return|throw|await/i, msg: "⚠️ RISCO DE INFINITE LOOP (V49.1): 'while(true)' detectado sem quebras lógicas. Pode gerar gargalos bloqueantes (DoS Local)." },
+    { test: (l) => /fs\.promises\.\w+\(/.test(l) && (!l.includes('await') && !l.includes('.then') && !l.includes('.catch')), msg: "⚠️ ASYNC I/O FLUTUANTE (V49.1): Modificação de file system sem 'await' ou cadeia de promise detectada. Isso gera race conditions de I/O silenciosas e riscos de integridade." },
+    { pattern: /\/(\([^)]+\)\+)+\//, msg: "🛡️ ALERTA DE SEGURANÇA (ReDoS): Expressão regular vulnerável a 'Algorithmic Complexity Attack' (ReDoS) detectada. Evite quantificadores aninhados." },
+    { test: (l) => (!l.includes('await') && l.includes('async ') && l.includes(')') && l.includes('{')), msg: "⚠️ OTIMIZAÇÃO (V49.1): Função declarada como 'async' sem 'await' visível. Evite overhead de Promise." },
+    { test: (l) => /(?:db|sqlite|pg)\.run\(|query\(/i.test(l) && !/await/.test(l) && !/\.then/.test(l), msg: "⚠️ ALERTA DE ASSINCRONISMO (V49.1): Chamada de banco de dados sem 'await' detectada. Isso causará Race Conditions no I/O." },
+    { test: (l) => /process\.exit\(\s*0\s*\)/.test(l) && !l.includes('process.on'), msg: "⚠️ GRACEFUL SHUTDOWN (V50.0): Chamada direta e precipitada de process.exit(0). Certifique-se de liberar buffers." },
+    { test: (l) => /\.includes\s*\(/.test(l) && !l.includes('typeof') && !l.includes('?'), msg: "🛡️ ZERO-TRUST JAVASCRIPT (V50.0): Execução de '.includes()' detectada em variável possivelmente indefinida. Sempre faça fallback ou optional chaining ('var?.includes') para mitigar 'Cannot read properties of undefined'." },
+    { test: (l) => /req\.url\.split\(['"]\/['"]\)\.pop\(\)/.test(l) && !l.includes('path.basename') && !l.includes('replace'), msg: "🛡️ ZERO-TRUST SECURITY (V51.0): Path Traversal detected. Extrair final da URL direto para I/O permite ataques '/../../../'. Mitigue com Regex ou 'path.basename'." },
+    { test: (l) => /fs\.writeFileSync/.test(l) && !/export|cli/i.test(l), msg: "⚠️ I/O BLOQUEANTE (V52.0): 'fs.writeFileSync' detectado em contexto não-CLI. Privilegie 'fs.promises.writeFile' para não travar o Node Event Loop da malha de IA." },
+    { test: (l) => /await\s+Promise\.all[^S]/.test(l) && l.includes('map'), msg: "⚠️ VULNERABILIDADE DE SOBRECARGA DE BOTTLENECK (V54.1): Promise.all associado a .map detectado em escalada. A ausência de chunking ou p-limit causa exaustão simultânea de workers/DB. Quebre em lotes!" },
+    { test: (l) => /catch\s*\(\s*\w*\s*\)\s*=>\s*\{\s*\}/.test(l), msg: "🛡️ ALERTA DE AUTO-SABOTAGEM (V54.1): Empty Catch / Supressão detectada. Uma promessa silenciada oculta o desmoronamento do fluxo. Repasse o tracker ou registre minimamente a exaustão." },
+    { test: (l) => /\.pipe\s*\(/i.test(l) && !/stream\.pipeline/i.test(l), msg: "🛡️ OTIMIZAÇÃO I/O (V55.0/V57.0): O método '.pipe()' puro não repassa erros adequadamente (memory leaks em falha). Use 'stream.pipeline()' ou adicione tratamentos de erro explícitos para ambos lados da stream." },
+    { pattern: /require\s*\(\s*['"]vm['"]\s*\)/i, msg: "⚠️ ATENÇÃO COM SANDBOX (V56.0): Importação do módulo VM do Node.js detectada. Certifique-se de que o contexto em execução não possa causar escape sandbox ou memory leaks." },
+    { test: (l) => /\.write\(/i.test(l) && !/if\s*\(!.*\.write/i.test(l) && !/drain/i.test(l), msg: "⚠️ GESTÃO DE BACKPRESSURE (V57.0): Uso direto de .write() de stream detectado sem verificação condicional booleana para drenar o buffer (drain). Risco de OOM e asfixia de heap!" },
+    { test: (l) => /child\.kill\(['"]SIGTERM['"]\)/.test(l), msg: "🛡️ AUTO-HEALING (V57.0): O uso de SIGTERM em subprocessos vitais pode falhar em locks do Event Loop. Substitua por SIGKILL (kill -9) para evitar zumbis bloqueantes e CPU a 100%." },
+    { pattern: /Math\.random\(\)\s*\.toString\(36\)/, msg: "🛡️ ALERTA DE ENTROPIA (V60.0): Uso de Math.random() para identificadores detectado. Risco de colisão em escala. Use crypto.randomUUID()." },
+    { test: (l) => l.includes('.setBlocking(true)'), msg: "🛡️ ALERTA DE EPIPE (V60.0): Chamar setBlocking(true) em stdout pode causar crash fatal (EPIPE) se o receptor desconectar no Windows. Remova e use handlers de erro." },
+    { test: (l) => (l.includes('stdin') || l.includes('stdout')) && !l.includes('setEncoding') && l.includes('.on('), msg: "🛡️ PURE DATA CORRUPTION (V60.0): Manipulação de stream detectada sem .setEncoding('utf8'). Risco de fragmentação de buffer UTF-8 (EOF bug)." },
+    { pattern: /Object\.assign\(\s*\{\}\s*,\s*.*/, msg: "⚠️ DESEMPENHO (V61.0): Uso de Object.assign({}, obj) em caminhos críticos gera desotimizações. Priorize object spread native { ...obj } em V8." },
+    { test: (l) => /\.reduce\(\s*\(.*\)\s*=>\s*\[\s*\.\.\.\w+/.test(l), msg: "⚠️ REDUCE QUADRÁTICO (V61.0): O uso de spread syntax em loop reduce de arrays causa complexidade O(N^2). Use .push() atômico ou map()/flatMap()!" },
+    { test: (l) => /catch\s*\(\s*\w+\s*\)\s*\{\s*\w+\(\w+\)\s*\}$/.test(l), msg: "🛡️ MÁSCARA DE ERRO (V61.0): Ocultação/Swallowing de erro sem expor .stack ou propagá-lo. Preserve o rastreio causal de exceções contextuais!" },
+    { test: (l) => /SELECT\s+\*\s+FROM/i.test(l) && !/LIMIT/i.test(l), msg: "⚠️ OVER-FETCHING (V62.0): Uso de SELECT * sem LIMIT pode causar exaustão de I/O em produção. Selecione colunas explicitamente e pagine grandes volumes." },
+    { test: (l) => /setTimeout\s*\(/.test(l) && !/(?:const|let|var)\s+\w+\s*=\s*setTimeout/.test(l), msg: "⚠️ ORPHAN TIMEOUT LEAK (V62.0): Recomenda-se armazenar a referência do timer para permitir 'clearTimeout' durante unmount ou abort." },
+    { test: (l) => /useEffect\s*\(\s*\(\)\s*=>\s*\{/.test(l) && !/return\s*\(\)\s*=>\s*\{/.test(l) && /(addEventListener|setTimeout|setInterval|observe)/.test(l), msg: "⚠️ REACT UNMOUNT LEAK (V62.0): Efeito possui timer ou listener, mas não possui função de cleanup. Vazamento de memória garantido após re-renders!" },
+    { test: (l) => /(?:const|let|var)\s+\w+\s*=\s*new\s+(?:Map|Set)\(\)/.test(l) && !/size|delete|clear/.test(l), msg: "⚠️ HEAP EXPLOSION RISK (V63.0): Mapa ou Set instanciado sem políticas visíveis de LRU/purgation (delete, clear) perto da lida no contexto. Risco de OOM persistente." },
+    { test: (l) => /fetch\s*\(/.test(l) && !/AbortSignal|timeout/i.test(l), msg: "⚠️ ZERO-TRUST NETWORK (V64.0): Uso de 'fetch' sem 'AbortSignal' ou 'timeout'. O I/O pode congelar infinitamente se o servidor remoto não responder. Adicione timeout controller!" },
+    { test: (l) => /Promise\.race\s*\(/.test(l), msg: "⚠️ PROMISE LEAK (V64.0): 'Promise.race' detectado. Cuidado: promessas perdedoras NÃO são canceladas e continuam ativas consumindo recursos e DB conexões. Requer limpeza explícita ou AbortController." },
+    { test: (l) => /DELETE\s+FROM\s+\w+/i.test(l) && !/WHERE/i.test(l), msg: "🛡️ OMNI-DESTRUCTION PREVENTION (V65.0): Cláusula SQL DELETE sem WHERE detectada em raw query. Evite o wiping total da tabela integrando filtros atômicos." },
+    { test: (l) => /Promise\.any\s*\(/.test(l) && !/catch\s*\(/i.test(l), msg: "⚠️ AGGREGATE ERROR LEAK (V65.0): 'Promise.any' falha emitindo um 'AggregateError'. Capturá-lo com .catch() é mandatório para evitar crashing silenciado." },
+    { test: (l) => /(?:getBoundingClientRect|offsetWidth|offsetHeight|scrollWidth).*=/.test(l), msg: "⚠️ DOM RE-FLOW (V66.0): Leitura/escrita síncrona no DOM causa layout thrashing (Lentidão extrema). Use requestAnimationFrame!" },
+    { pattern: /crypto\.createHash\(['"](?:md5|sha1)['"]\)/i, msg: "🛡️ CRYPTO-WEAK (V66.0): MD5/SHA1 banidos por vulnerabilidades de colisão. Migre imediatamente para 'sha256' ou 'sha512' para assinaturas." },
+    { test: (l) => /<input/i.test(l) && !/maxLength=|type=['"]checkbox|type=['"]radio/i.test(l), msg: "⚠️ UNBOUNDED TEXT INPUT (V66.0): Tags <input> sem 'maxLength' limitador explícito na interface (DOM). Adicione o atributo para blindar contra input abusivos." },
+    { test: (l) => /BEGIN|START\s+TRANSACTION/i.test(l) && !/COMMIT|ROLLBACK/i.test(l), msg: "⚠️ SQL TRANSACTION LEAK (V67.0): Abertura de transação sem Commit/Rollback explícito no script analisado. Risco de connection thrashing ou deadlocks!" },
+    { test: (l) => /__(proto|defineGetter|defineSetter)__/i.test(l), msg: "🛡️ PROTOTYPE POLLUTION (V67.0): Referência direta a __proto__ ou getters mágicos em lógica suspeita. Sempre bloqueie chaves nocivas em payloads JSON." },
+    { test: (l) => /\.split\(['"]\?['"]\)/.test(l) && !/new\s+URL/i.test(l), msg: "⚠️ PATH WEAKNESS (V67.0): Extração de queries via split('?'). Use instâncias nativas como 'new URL(url)' para parsing imune a injection ou bypass de domínios." },
+    { pattern: /[^=!><]==[^=]/, msg: "⚠️ TYPE COERCION RISK (V68.0): Uso de igualdade fraca (==) detectado. Sempre use igualdade estrita (===) para estabilidade Zero-Trust de tipagem." },
+    { test: (l) => /console\.\w+\(.*e\.message.*\)/.test(l) && !/console\.error\(e\)/.test(l), msg: "🛡️ TRACE MASKING (V68.0): Ocultamento de Stack Trace detectado. Registrar apenas 'e.message' perde o rastro causal da falha original. Registre 'e'." },
+    { test: (l) => /style\s*=\s*\{\{\s*\w+/.test(l), msg: "⚠️ INLINE STYLE RE-RENDER (V68.0): Declarar objetos css literais no React destrói o memoization, pois aloca nova referência no JS Heap a cada render." },
+    { test: (l) => /JSON\.stringify\s*\(/i.test(l) && /Set|Map/i.test(l) && !/Array\.from|\[\.\.\./i.test(l), msg: "⚠️ JSON STRINGIFY LEAK (V69.0): Set ou Map passados diretamente para JSON.stringify retornam '{}'. Converta para Array antes de serializar." },
+    { test: (l) => /new\s+(?:Array|Object)\s*\(.*10000/.test(l) && !/TypedArray|Buffer/.test(l), msg: "⚠️ GC OVERLOAD POOL (V70.0): Evite criar arrays massivos de literais em JS que afogam o Garbage Collector; utilize TypedArrays ou Buffers nativos." },
+    { test: (l) => /\.emit\(['"]error['"]\s*,/.test(l) && !/\.on\(['"]error['"]/.test(l), msg: "🛡️ UNHANDLED EVENT EMITTER FATALITY (V71.0): Emitir erro sem listener causa crash instantâneo não-rastreável no Node.js." },
+    { test: (l) => /new\s+Promise\s*\(\s*(?:[a-zA-Z_]\w*)\s*=>/.test(l) && !/reject\s*\(/.test(l), msg: "⚠️ PROMISE PERMA-LOCK (V71.0): Criar Promise apenas com 'resolve' (sem 'reject') causará travamento eterno de thread/conexões se ocorrer falha isolada." },
+    { test: (l) => /fs\.promises\.readFile/i.test(l) && !/['"]utf-?8['"]/i.test(l), msg: "⚠️ BINARY READ LEAK (V71.0): fs.promises.readFile sem 'utf8' preenche o Heap com raw Buffers. Sempre defina 'utf8' para text extraction." },
+    { test: (l) => /JSON\.parse\(.*req\.body.*\)/.test(l) && !/limit/.test(l), msg: "🛡️ DOS PAYLOAD SHIELD (V71.0): Fazer JSON.parse de requisições de origem anônima sem limites restritos causa asfixia instantânea de thread/OOM." },
+    { test: (l) => /new\s+WebSocket\(|wss?:\/\//i.test(l) && !/ping|pong|heartbeat|setInterval/i.test(l), msg: "⚠️ WEBSOCKETS KEEP-ALIVE LEAK (V72.0): Socket aberto sem mechanism de Heartbeat (Ping/Pong) criará conexões fantasmas (half-open) afogando o fd limit do servidor." },
+    { test: (l) => /replace\(\s*\/<\[\^>\]\*>\//.test(l), msg: "🛡️ REDOS NA SANITIZAÇÃO (V72.0): Uso de Regex crua para limpar HTML pode engasgar a CPU com payloads elaborados. Use DOMPurify ou sanitize-html." },
+    { test: (l) => /Buffer\.allocUnsafe\s*\(/i.test(l) && !/fill\s*\(/i.test(l), msg: "🛡️ MEMORY FRAGMENT LEAK (V72.0): Chamar Buffer.allocUnsafe sem sobrescrever imediatemente preenche a memória com dados velhos (possíveis segredos na RAM). Troque para Buffer.alloc()." },
+    { test: (l) => /await\s+(.*\()/.test(l) && /return\s+.*await/.test(l) && /async\s+function/.test(l), msg: "⚠️ UNBOUNDED ASYNC RECURSION (V72.0): Risco de falha silenciosa Stack Size Exceeded detectado em fluxo assíncrono." },
+    { test: (l) => /(Object|Array|String|Number)\.prototype\.\w+\s*=/.test(l), msg: "🛡️ PROTOTYPE MUTATION (V73.0): Modificar protótipos globais destrói a integridade do ambiente isolado. Veto absoluto a Monkey Patching." },
+    { test: (l) => /process\.exit\(\s*1\s*\)/.test(l) && !/if\s*\(\s*require\.main\s*===/.test(l), msg: "⚠️ LIBRARY FATAL EXIT (V73.0): Invocar process.exit(1) dentro de um módulo/SDK derruba o Master Process (Sistema Principal). Lance um Throw Error ou rejeite a promise em vez de matar todo o processo hospedeiro." },
+    { test: (l) => /\bdebugger;\b/.test(l), msg: "🛡️ DEBUGGER TRAP DEPLOYMENT (V74.0): Inclusão da palavra-chave 'debugger;' abortará o Event Loop na V8 sob debug (Thread bloqueada infinitamente). Remova para Deployments Autônomos!" },
+    { test: (l) => /function\s*\*\s*\w+/.test(l) && !/yield/.test(l), msg: "⚠️ GENERATOR LEAK (V74.0): Declaração de função generator (function*) sem comando 'yield'. Possível erro de boilerplate causando overhead do iterador." },
+    { test: (l) => /JSON\.stringify\s*\(/i.test(l) && !/(?:stringifySafe|replacer|\[Circular\])/i.test(l) && /(req|res|error|window|document)/i.test(l), msg: "⚠️ CIRCULAR JSON LEAK (V75.0): JSON.stringify em objetos possivelmente circulares (req/res/erros/DOM). Risco de Stack Overflow (TypeError: Converting circular structure to JSON). Use serializador seguro." },
+    { test: (l) => /catch\s*\(\s*\w*\s*\)\s*\{.*await\s+\w+\(.*\}.*catch/i.test(l), msg: "⚠️ UNBOUNDED RETRY LEAK (V75.0): Mecanismo de Retry Assíncrono detectado sem limitação máxima (Max Retries). Risco de laço infinito de retry na rede!" },
+    { test: (l) => /\.sort\(\s*\(.*\)\s*=>/i.test(l) && /(rows|data|results)/i.test(l) && !/limit/i.test(l), msg: "⚠️ IN-MEMORY SORT BOTTLENECK (V75.0): Sorting (.sort()) detectado no lado Node in-memory para dados DB. Transfira a carga ordenando por ORDER BY no SQL nativo." },
+    { test: (l) => /\.map\(\s*\(.*\)\s*=>\s*(?:<[A-Z]|\(\s*<[A-Z])/i.test(l) && !/key\s*=/i.test(l), msg: "⚠️ REACT MISSING KEY (V75.0): Listagem React gerada via .map sem atributo 'key'. Risco de re-renders de alta latência e desarranjo de DOM." },
+    { test: (l) => /\.replaceAll\(\s*\/.*[+*^$]\{/i.test(l), msg: "🛡️ OMNI-REDOS VULNERABILITY (V75.0): replaceAll com Regex altamente dinâmico/recursivo (+*{}). Prefira indexOf loop ou re-escreva para string segura contra complexidade exponencial." },
+    { test: (l) => /for\s*\(.*(in|of).*\{\s*.*(\.find\(|\.filter\()/i.test(l), msg: "⚠️ O(1) BOTTLENECK AWARENESS (V79.0.0): Detectado uso de find/filter O(N) de array dentro de um loop. Carga exaustiva O(N^2). Indexe os itens em um Map ou Record fora do loop primeiro para acesso O(1)." },
+    { test: (l) => /while\s*\(\s*.*\s*\)\s*\{\s*[^}await]*\}/i.test(l) && !l.includes('crypto'), msg: "⚠️ EVENT LOOP STARVATION PREVENT (V79.0.0): Laço while() possivelmente extenso detectado sem chamadas assíncronas (awaits). Pode bloquear o thread da V8. Incorpore 'await new Promise(r => setImmediate(r))' se processar grandes buffers." },
+    { test: (l) => /arena/i.test(l) && /route/i.test(l), msg: "🧠 SWARM MOE OPTIMIZATION (V79.0.0): Lógica de roteamento do Arena detectada. Sempre inclua feedback do Validator Model para evitar alucinações de sub-agentes soltos." },
+    { test: (l) => /readFileSync/i.test(l) && /import/i.test(l), msg: "🛡️ AST REQUIRE SHIELD (V79.0.0): Tentar parsear o source inteiramente manual em um arquivo usando readFileSync pode quebrar em grandes monolitos. Prefira o Ninja AST Tracer nativo." },
+    { test: (l) => /grep_search\s*\(|run_command\s*\(\s*['"`]grep/i.test(l) && /child_process\.|exec\(|spawn\(/i.test(l), msg: "🛡️ AGENTIC TOOL OVERRIDE (V79.0.0): Chamada manual de comandos de busca raw detectada. Sempre priorize as MCP Tools de busca exatas (grep_search) em detrimento de subprocessos Bash, economizando o Event Loop e fortalecendo o uso Nativo do Agente." },
+    { test: (l) => /query_arena_ai\(.*query_arena_ai/i.test(l) && /await/i.test(l), msg: "⚠️ SWARM ANTI-LOOP (V79.0.0): Detectada recursividade cruzada entre subservidores Swarm. Risco de chamadas infinitas ao Arena AI! Utilize sessões desacopladas com Circuit Breakers." },
+    { test: (l) => /JSON\.parse\(.*toString\(\)\)/.test(l) && /d\.toString/i.test(l) && /process\.stdin/i.test(l), msg: "🛡️ STDIN STREAMING LEAK (V79.0.0): Jamais realize JSON.parse diretamente em parcelas avulsas (chunk of buffer) do STDIN. Junte o buffer na quebra de linha ('\\n') antes." },
+    { test: (l) => /Math\.random\(\)\s*\*\s*\d+/.test(l) && !/(?:Math\.floor|Math\.round|Math\.ceil|parseInt)/.test(l), msg: "⚠️ FLOAT LEAK (V79.0.0): Multiplicação de Math.random() sem truncamento. Pode injetar frações flutuantes no banco, em primary keys ou iteradores. Envolva com Math.floor()." },
+    { test: (l) => /\.then\(\s*async/.test(l), msg: "⚠️ ASYNC-THEN ANTI-PATTERN (V79.0.0): Passar função async para .then() sem retornar adequadamente sua promise pode dessincronizar o encadeamento léxico (zombie handlers). Prefira 'await' flat no escopo exterior." },
+    { test: (l) => /(?:const|let|var)\s+\w+\s*=\s*\[.*\]\s*;\s*while\s*\(.*length.*<.*\)/, msg: "🛡️ AGENTIC HALLUCINATION LOOP PREVENT (V79.0.0): Estruturas 'while' baseadas no acréscimo de output de modelos probabilísticos correm extremo risco de laço infinito devido aos context cut-offs. Amarre sempre um Circuit Breaker com limitação linear dura." },
+    { test: (l) => /mcp_.+_diagnose\s*\(/.test(l) && /(while\s*\(true\)|setInterval)/.test(l), msg: "🧠 OMNI-OBSERVER SHIELD (V79.0.0): Pollings agressivos ao subsistema de diagnóstico. Use pub/sub reativo para arquiteturas agenticas escaláveis em vez de asfixiar o Kernel de telemetria." },
+    { test: (l) => /JSON\.stringify\s*\(\s*.*(?:content|text|payload).*\)/i.test(l) && /length\s*>\s*(?:[1-9]\d{4,})/.test(l), msg: "🛡️ SWARM CONTEXT LEAK (V79.0.0): Vetores JSON gigantescos submetidos a artefatos de IA sobrecarregam a Janela de Contexto (OOM Context-Cutoff/Alucinações). Limite ou pagine." },
+    { test: (l) => /fs\.writeFileSync/i.test(l) && !/multi_replace_file_content|replace/i.test(l), msg: "🛡️ AGENTIC STRICT EDIT CHAIN (V79.0.0): O agente não deve reescrever a totalidade de arquivos massivos (> 200 linhas). Utilize operações granulares/diffs para prevenir exaustão cerebral ou desastres." },
+    { test: (l) => /\.pipe\s*\(\s*process\.stdout\s*\)/.test(l) && !/\.on\(['"]error['"]/.test(l), msg: "🛡️ [V79.0.0 AGENTIC-SINGULARITY] BUFFER DRAIN ASPHYXIATION: Stream piped direto para stdout sem handler de erro! Crashará no primeiro EPIPE do OS." },
+    { test: (l) => /Promise\.allSettled/.test(l) && /=>\s*\[\.\.\./.test(l), msg: "🛡️ [V79.0.0 AGENTIC-SINGULARITY] PROMISE.ALL SETTLEMENT HEAP EXHAUSTION: Fazer array spread repetitivo em handlers Promise.allSettled gera alocações C++ no V8 além dos limites." },
+    { test: (l) => /fs\.(?:existsSync|readFileSync|statSync)/i.test(l) && /while|for/i.test(l), msg: "🛡️ [V80.0.0 SINGULARITY-NEXUS] SYNCHRONOUS I/O STARVATION: Operação fs.*Sync atômica detectada dentro de um loop exaustivo! Isso bloqueia o Event Loop inteiro para todo o ecossistema. Privilegie batch processing assíncrono." },
+    { test: (l) => /query_arena_ai/i.test(l) && /await|then/i.test(l) && !/circuit_breaker|timeout|abort/i.test(l), msg: "🧠 [V80.0.0 SINGULARITY-NEXUS] MOE OMNI-LOCK PREVENTION: Chamada para Arena AI Validator model sem circuit breaker. Se o orquestrador Swarm falhar, a cascata causará paralisia neural (Deadlock)." },
+    { test: (l) => /\.reduce\(\s*\(.*\)\s*=>\s*\[\s*\.\.\./i.test(l), msg: "⚠️ [V80.0.0 SINGULARITY-NEXUS] O(N^3) HIDDEN SCALABILITY COLLAPSE: Propagação contígua e aninhada de object spread ... dentro de reduce(). Destruição silenciosa de performance V8. Mute a variável diretamente." },
+    { test: (l) => /Buffer\.concat\(\s*\[.*\]\s*\)/i.test(l) && /loop|forEach|map/i.test(l), msg: "🛡️ [V80.0.0 SINGULARITY-NEXUS] V8 GC OVERFLOW: Múltiplos Buffer.concat interativos dentro de um loop causam alocação severa de RAM. Use um único Buffer.concat para o Array condensado no exterior do loop." },
+    { test: (l) => /fs\.readFileSync/i.test(l) && !/utf-?8/i.test(l) && /\.length/.test(l), msg: "⚠️ [V80.0.0 OMNI-NEXUS TRANSCENDENCE] MASSIVE BUFFER LEAK: Leitura de arquivos síncrona alocada no Heap sem codificação, e aferindo .length diretamente no buffer. Fragmentação fatal garantida em grandes massas de log." },
+    { test: (l) => /new\s+Object\(\)/i.test(l), msg: "⚠️ [V80.0.0 OMNI-NEXUS TRANSCENDENCE] PROTOTYPE CHAIN POLLUTION: Uso de invocação orientada a função para Objectos primitivos 'new Object()'. Requer 'Object.create(null)' para dicionários totalmente isolados e sem getters __proto__." },
+    { test: (l) => /Promise\.all\s*\(\s*\w+\s*\.map/i.test(l) && !/limit/i.test(l) && /await|chunk/i.test(l), msg: "🛡️ [V80.0.0 OMNI-NEXUS TRANSCENDENCE] UNCHUNKED PROMISE EXPLOSION: Detecção heurística de Promise.all massivo varrendo coleções sem agrupamento. O pool de workers DB será sufocado e resultará em Connection Reset by Peer." },
+    { test: (l) => /(?:req|res|logger)\.on\s*\(\s*['"](?:data|error)['"]/i.test(l) && !/(?:req|res|logger)\.removeListener/.test(l), msg: "🛡️ [V80.0.0 OMNI-NEXUS TRANSCENDENCE] LISTENER ZOMBIFICATION: Um handler foi acoplado via .on() em contexto efêmero sem cleanup programado via removeListener() ou .once(). Risco severo de MaxListenersExceeded." },
+    { test: (l) => /fs\.(?:read|write)FileSync/.test(l) && /ninja-.*\.js/.test(l), msg: "⚡ [V82.0.0 SINGULARITY-OMNI-FLOW] AST BLOCK DIAGNOSTIC: fs.readFileSync bloqueou 285ms no kernel. Sempre utilize hooks await fs.promises em módulos ninja nativos." },
+    { test: (l) => /while\s*\(.*(true|1)\s*\)/i.test(l) && /read_file|grep_search|run_command|replace_file_content/i.test(l) && !/await\s+circuit_breaker/i.test(l), msg: "🛡️ [V112.0.0 OMNI-NEXUS TRANSCENDENCE] AGENTIC INFINITE MCP LOOP: Detectado loop de chamadas de ferramentas Agenticas síncronas/raw sem Circuit Breaker perceptível. O agente corre risco de exaurir I/O local e cloud tokens." },
+    { test: (l) => /semantic_search|compute_embeddings|exa_search/i.test(l) && !/threshold|cosine|similarity\s*>/i.test(l), msg: "🛡️ [V112.0.0 OMNI-NEXUS TRANSCENDENCE] VSS OMNI-HALLUCINATION: Busca semântica vetorial ou web acionadas sem validação de threshold/cosine similarity. Isso causará alucinação letal no contexto RAG (Retrieved context poisoning)." },
+    { test: (l) => /query_arena_ai|agent_worker|swarm/i.test(l) && /await|Promise\.all/i.test(l) && !/circuitBreaker|timeoutMax/i.test(l), msg: "⚠️ [V112.0.0 OMNI-NEXUS TRANSCENDENCE] AGENTIC DEADLOCK (Swarm Paralisys): Sub-agentes ou modelos delegados engajados sem um limitador rústico de tempo ou tokens (Circuit Breaker duro). A colméia corre risco de entropia infinita na conversação." },
+    { test: (l) => /connect_entities|INSERT.*nodes/i.test(l) && !/(?:exists_flag|verify_edge|await\s+check_node)/i.test(l), msg: "🛡️ [V112.0.0 OMNI-NEXUS TRANSCENDENCE] GRAPH NODE ISOLATION: Tentativa cega de acoplar vértices no Grafo Epistêmico (Oracle) sem verificação prévia tridimensional! Ilhas de dados mortas serão formadas isolando clusters inteiros." },
+    { test: (l) => /db\.(?:run|exec|all)\s*\(.*SELECT.*FROM.*\b\w+\b\s*\)/i.test(l) && /while\s*\(|for\s*\(/i.test(l) && !/quantumYield|setImmediate/i.test(l), msg: "💀 [V112.0.0 OMNI-NEXUS TRANSCENDENCE] MEMORY EVICTION DEATH-SPIRAL: Loop massivo com queries ao SQLite sem yield assíncrono profundo causa paralisia na Thread e impede Eviction de memória C++. Use quantumYield/setImmediate no lacing!" },
+    { test: (l) => /(?:request\.params\.content|fs\.readFileSync).*length\s*>\s*(?:[1-9]\d{5,})/i.test(l) && /(?:prompt|query|input).*=/i.test(l), msg: "🛡️ [V112.0.0 OMNI-NEXUS TRANSCENDENCE] CONTEXT DILUTION FATALITY: Megabytes de string passados sem chunking a fluxos de LLM/Agents quebram a heurística contextual. Pagine ou mapeie por AST." },
+    { test: (l) => /if\s*\([^>]+>\s*75.*\)\s*\{\s*.*ninja-omni-reflection/i.test(l) && !/debounce|circuit_breaker/i.test(l), msg: "⚠️ [V112.0.0 OMNI-NEXUS TRANSCENDENCE] RECURSIVE HEALING FALLACY: Gatilhos automáticos baseados inteiramente em threshold numérico podem retroativar loops se a correção mantiver a complexidade alta. Adicione circuit breaker persistente temporal!" },
+    { test: (l) => /while\s*\(\s*true\s*\)\s*\{/i.test(l) && !/await\s+quantumYield/i.test(l) && !/break/i.test(l), msg: "⚡ [V112.0.0 OMNI-NEXUS TRANSCENDENCE] QUANTUM-YIELD GAP: Loop infinito sem await quantumYield() detectado. O Event Loop Tracker (Monolith Defender) matará o processo como Zumbi térmico. Incorpore o yielding." },
+
+    { test: (l) => /fs\.readFile.*AST/i.test(l) && !/yield|chunk/i.test(l), msg: "💀 [V112.0.0 OMNI-NEXUS TRANSCENDENCE] OVERLOAD AST PARSER: Leitura maciça de source code acoplado ao Node AST sem micro-yielding detectada. Causará Thread Lockup e OOM imediato. Use streams chunkadas." },
+    { test: (l) => /JSON\.stringify.*(?:Map|Set)/i.test(l) && !/Array\.from/i.test(l), msg: "💀 [V112.0.0 OMNI-NEXUS TRANSCENDENCE] MASSIVE CIRCULAR MAP SERIALIZATION: JSON.stringify em Map/Set pode gerar leaks imensos ou conversação vazia sem o replacer. Use Arrays flat." },
+    { test: (l) => /\$\{[a-zA-Z0-9_]+\}/.test(l) && /prompt.*length\s*>\s*100000/.test(l), msg: "💀 [V112.0.0 OMNI-NEXUS TRANSCENDENCE] CONTEXT DILUTION ATROPHY: Interpolação de inputs monstruosos direto na root string de LLMs quebra as constraints cognitivas do modelo." },
+    { test: (l) => /agentic-swarm-worker/i.test(l) && !/lagAccel|performance\.now/i.test(l), msg: "💀 [V112.0.0 OMNI-NEXUS TRANSCENDENCE] SWARM DE-SYNCHRONIZATION: Instanciação de Agentic Swarm sem heurística de Aceleração de Lag detectada. Swarm entrará em paralisia e sufocará a V8." },
+    { test: (l) => /\.substring\(\s*0\s*,/i.test(l) && /while\s*\(|for\s*\(/i.test(l), msg: "💀 [V112.0.0 OMNI-NEXUS TRANSCENDENCE] ZERO-COPY VIOLATION: Uso de .substring dentro de um hot-loop aloca strings massivas no Heap. Substitua por .slice() se apropriado ou offsets lógicos." },
+    { test: (l) => /new\s+Map\s*\(/i.test(l) && !/size\s*>/i.test(l) && !/clear\(\)/i.test(l), msg: "⚠️ [V112.0.0 OMNI-NEXUS TRANSCENDENCE] UNBOUNDED MAP MEMORY DETECTED: Uso de Map sem estratégia explícita de controle dimensional. Crescimento infinito asfixia o container." },
+    { test: (l) => /JSON\.parse/i.test(l) && /catch/i.test(l) && !/fallback|retry/i.test(l), msg: "💀 [V112.0.0 OMNI-NEXUS TRANSCENDENCE] NO FEEDBACK LOOP: JSON.parse envolvido em catch mas sem lógica de retry auto-crítica (Validator Loop). O agente precisa regenerar outputs mal formados em vez de morrer seca mente." },
+    { test: (l) => /Buffer\.from\s*\(/i.test(l) && !/maxLength|size/i.test(l) && /req|payload/i.test(l), msg: "💀 [V112.0.0 OMNI-NEXUS TRANSCENDENCE] DEEP BUFFER POISONING DETECTED: Buffers alocados a partir de payload sem limite preenchem C++ slab space invisível. Node.js Memory Allocation Failed." },
+    { test: (l) => /new\s+MessageChannel\(\)/i.test(l) && !/unref/i.test(l), msg: "⚠️ [V112.0.0 OMNI-NEXUS TRANSCENDENCE] RPC PORT LEAK DETECTED: MessageChannel instanciado sem .unref() manterá o Event Loop ativo eternamente, forçando o worker a ser um fantasma zumbi." },
+    { test: (l) => /ideBuffer\s*\+=\s*d/i.test(l) || /ideBuffer\s*=\s*ideBuffer\.slice/i.test(l), msg: "💀 [V112.0.0 OMNI-NEXUS TRANSCENDENCE] O(N) STRING APPEND LEAK: Detecção de concatenação massiva em chunk streams (`+= d`) e varredura `.slice()`. Migre para Zero-Copy Arrays com chunks preenchidas (String Interning Defense)." },
+    { test: (l) => /Promise\.allSettled/.test(l) && !/await/.test(l) && /\{/.test(l), msg: "🛡️ [V112.0.0 OMNI-NEXUS TRANSCENDENCE] FLOATING TETHER OMISSION: 'Promise.allSettled' detectado como floating promise na orquestração de I/O. Isso garante Phantom Threads soltas caso falhem as requisições atreladas." },
+    { test: (l) => /mcp_.+_ninja_run\s*\(/.test(l) && /(loop|while(true)|setInterval)/.test(l), msg: "🧠 [V112.0.0 OMNI-NEXUS TRANSCENDENCE] OS COMMAND RECURSION: Orquestrar comandos do SO via loop persistente sem limitadores aniquilará a TTY nativa (Spawn Leak). Requer Semaphore ou AbortController no subprocesso!" },
+    { test: (l) => /Promise\.all\s*\(\s*\w+\.map/i.test(l) && !/chunk|limit/i.test(l), msg: "💀 [V116.0.0 OMNI-NEXUS TRANSCENDENCE] UNBOUNDED MAP PROMISE EXPLOSION: Mapeamento ingênuo de arrays gigantescos para Promise.all asfixiará o pool de Event Loop em milissegundos. Pagine ou use p-limit!" },
+    { test: (l) => /\.(replace|split|match|search)\s*\(\s*\/.*\+\/|.*\/.*\*\/.*|.*\/.*\?\/.*/i.test(l) && /while\s*\(|for\s*\(/i.test(l), msg: "💀 [V116.0.0 OMNI-NEXUS TRANSCENDENCE] REDOS LOOP INJECTION: Regexes dinâmicos e quantificadores não-lineares dentro de hot-loops causarão complexidade exponencial no V8. Extraia o Regex RegExp para a raiz do modulo." },
+    { test: (l) => /query_arena_ai\(.*query_arena_ai/i.test(l) && !/depth|max|limit/i.test(l), msg: "🧠 [V116.0.0 OMNI-NEXUS TRANSCENDENCE] SWARM HALLUCINATION PARALYSIS: Loop reflexivo de validação sem limitador temporal estrito." }
+];
+
+function evaluateErrorLogs(logic, warnings) {
+    const errText = readErrorsMD();
+    if (errText && logic.trim().length > 30) {
+       // V112.0.0 - Fuzzy Semantic Simulation matching
+       const keywords = logic.trim().substring(0, 300).split(/\W+/).filter(w => w.length > 5);
+       if (keywords.length > 5) {
+           let matchCount = 0;
+           for (const kw of keywords) {
+               if (errText.includes(kw)) matchCount++;
+           }
+           if (matchCount > keywords.length * 0.75) {
+               warnings.push("⚠️ VULNERABILIDADE RECORRENTE [Fuzzy-ERRORS.md V111]: Agrupamento semântico de tokens catalogado em incidentes passados e retido na memória. Verifique a semelhança do anti-padrão!");
+           }
+       }
+    }
+}
+
+function evaluateDynamicLearnings(logic, warnings) {
+    try {
+        const data = learningsCache;
+        if (data && Array.isArray(data.entities)) {
+            data.entities.forEach(ent => {
+                if (ent.type === 'Meta-Lesson' && ent.description) {
+                    const subject = (ent.name || '').toLowerCase();
+                    if (subject.length > 4 && logic.toLowerCase().includes(subject)) {
+                        warnings.push(`🧠 HEURÍSTICA DE APRENDIZADO (${ent.name}): ${ent.description}`);
+                    }
+                }
+            });
+        }
+    } catch (e) {
+        process.stderr.write(`[Meta] Erro de parsing do Learnings: ${e.message}\n`);
+    }
+}
+
+const l1CognitiveCache = new Map();
+
+async function getLogicWarnings(logic) {
+    if (typeof logic !== 'string') return [];
+    if (logic.length > 300000) logic = logic.substring(0, 300000); // V117.0 - ReDoS Armor Refined
+    
+    const hash = require('node:crypto').createHash('sha256').update(logic).digest('hex');
+    if (l1CognitiveCache.has(hash)) return l1CognitiveCache.get(hash);
+
+    const warnings = [];
+    let count = 0;
+    
+    for (const rule of cognitiveRules) {
+        if (rule.test?.(logic)) warnings.push(rule.msg);
+        else if (rule.pattern?.test(logic)) {
+            if (!rule.excl?.test(logic)) warnings.push(rule.msg);
+        }
+        
+        count++;
+        // V117.0.0 Zero-Latency Yield: prever congelamentos na V8 a cada 20 regras
+        if (count % 20 === 0) {
+            await new Promise(r => setImmediate(r));
+        }
+    }
+
+    evaluateErrorLogs(logic, warnings);
+    evaluateDynamicLearnings(logic, warnings);
+
+    const finalWarnings = [...new Set(warnings)]; // Deduplicate
+    
+    // Omni-Heuristics L1 Strict LRU Limit (Prevents OOM)
+    if (l1CognitiveCache.size > 2000) {
+        const oldestKey = l1CognitiveCache.keys().next().value;
+        l1CognitiveCache.delete(oldestKey);
+    }
+    l1CognitiveCache.set(hash, finalWarnings);
+    
+    return finalWarnings;
+}
+
+async function handleEvaluateLogic(request, args, database) {
+    const logic = args.logic_snippet;
+    const warnings = await getLogicWarnings(logic); // Adicionado await!
+    let feedback = "✅ Lógica parece limpa no Nível 1.";
+    
+    if (warnings.length > 0) {
+        feedback = `🚨 AVISOS DO SYSTEM 2 (Meta-Cognição V117.0.0 - OMNI-NEXUS TRANSCENDENCE):\n${warnings.join('\n')}`;
+        try {
+            await database.run('INSERT OR IGNORE INTO entities (name, type, description) VALUES (?, ?, ?)', ['Warning_Count_' + Date.now(), 'System2_AutoMetrica', warnings.join(' | ')]);
+        } catch(e) {
+            process.stderr.write('Telemetry store neglected: ' + e.message + '\n');
+        }
+    }
+    
+    return { jsonrpc: "2.0", id: request.id, result: { content: [{ type: "text", text: scrub(feedback) }] } };
+}
+
+async function handleRecordLesson(request, args, database) {
+    const subject = scrub(args.subject);
+    const lesson = scrub(args.lesson);
+    
+    if (lesson.trim().length < 60) {
+        throw new Error("REJEITADO (V56.0 Cognitive Shield): A lição é muito rudimentar. Formule um aprendizado com taxonomias causais (Porque falhou -> Como resolvemos -> Prevenção Sistêmica).");
+    }
+
+    await database.run(
+        `INSERT OR REPLACE INTO entities (name, type, description) VALUES (?, ?, ?)`,
+        [subject, 'Meta-Lesson', lesson]
+    );
+    
+    try {
+        let data = { entities: [] };
+        try {
+            const rawData = await fs.promises.readFile(LEARNINGS_PATH, 'utf-8');
+            data = JSON.parse(rawData);
+        } catch (e) {
+            if (e.code !== 'ENOENT') throw e;
+        }
+        data.entities.push({ name: subject, type: "Meta-Lesson", description: lesson, timestamp: new Date().toISOString() });
+        await fs.promises.writeFile(LEARNINGS_PATH, JSON.stringify(data, null, 2));
+        loadLearnings();
+    } catch(e) {
+        process.stderr.write('[Meta] Learning JSON persist err: ' + e.message + '\n');
+    }
+    
+    return { jsonrpc: "2.0", id: request.id, result: { content: [{ type: "text", text: `Aprendizado persistido com sucesso na Entidade '${subject}'. Eu fiquei mais inteligente.` }] } };
+}
+
+function handleSelfRepairPrompt(request, args) {
+    const ctx = (args.context || 'Geral').toUpperCase();
+    let rules = [];
+
+    // Base Rules (Always injected - Minimal)
+    rules.push("14. NO YAPPING (V60.0): Apenas código ou explanação cirúrgica.");
+    rules.push("15. VIBE CODING & SOLO-NINJA: Velocidade, latência baixa. ZERO burocracia corporativa.");
+    rules.push("17. SOLO-NINJA EXECUTION: Execute mutações. ZERO SOCRATIC GATES. Jamais pergunte como proceder.");
+    rules.push("73. OMNI-NEXUS TRANSCENDENCE SINGULARITY OVERRIDE: Conserte bugs agressivamente, sem falhar.");
+
+    if (ctx.includes('UI') || ctx.includes('FRONT') || ctx.includes('REACT')) {
+        // Frontend Domain Rules
+        rules.push("3. UIs Premium, use cores adequadas e micro-interações. Sem placeholders genéricos.");
+        rules.push("4. Reduza complexidade em front-end; prefira funções curtas.");
+        rules.push("6. Limpe (cleanup) todos os event listeners globais em useEffect.");
+        rules.push("9. Em componentes, privilegie globalThis sobre window.");
+        rules.push("29. LAYOUT THRASHING: Evite ler propriedades DOM antes de escrever estilos no ciclo.");
+        rules.push("36. UI PERFORMANCE: Evite estilos Inline em React para salvar FPS. Cuidado com memos perdidos.");
+        rules.push("55. REACT KEY SHIELD: Todo .map() DEVE ter 'key'.");
+    } else if (ctx.includes('DB') || ctx.includes('SQL') || ctx.includes('ORACLE')) {
+        // Database Domain Rules
+        rules.push("1. NUNCA gere RLS permissivo publicamente (BOLA).");
+        rules.push("2. Transações Atômicas (FOR UPDATE) para saldos.");
+        rules.push("5. SQL MUST BE PARAMETERIZED. Sem concatenação.");
+        rules.push("7. RLS SEM policies tranca tabela (Default-Deny).");
+        rules.push("22. OVER-FETCHING SQL: Nunca use SELECT * sem restrições ou paginação.");
+        rules.push("27. OMNI-DESTRUCTION SQL: Cuidado extremo com DELETE sem WHERE.");
+        rules.push("32. TRANSACTION LEAK SHIELD: try/catch/finally com commit/rollback mandatório.");
+        rules.push("54. IN-MEMORY SORT: Delegue todo sort() ao banco de dados.");
+    } else {
+        // Backend / Node.js Domain Rules
+        rules.push("11. STDIN \`setEncoding('utf8')\` mandatório para abortar EOF bugs.");
+        rules.push("12. Valide Floating Promises.");
+        rules.push("24. HEAP ARMOR: Evite Map/Set globais crescendo infinitamente. Use WeakMap/WeakSet ou Eviction.");
+        rules.push("25. NETWORK OMNI-HEARTBEAT: Toda requisição externa exige AbortSignal e Timeout.");
+        rules.push("26. PROMISE RACE LEAK: Fetch/DB queries rodam mesmo perdendo a 'race'. Aborte perdedores!");
+        rules.push("40. UNHANDLED EMITTER CRASH: Nunca dar emit('error') sem checar listeners, Node vai crashar.");
+        rules.push("43. DOS PAYLOAD SHIELD: HTTP Limits mandatórios antes do Parse JSON.");
+        rules.push("56. OMNI-REDOS AVOIDANCE: Evite Regex multi-linha complexos (ReplaceAll com lookahead mata a CPU).");
+        rules.push("61. AST EVOLUTION: Confie no AST, evite manipulação de String destrutiva em arquivos.");
+        rules.push("66. SYNCHRONOUS I/O STARVATION: fs.readFileSync e existsSync são estritamente banidos em loops no Node V8.");
+        rules.push("69. NEXT TICK BAN: Use setImmediate(), nunca process.nextTick() em loops recursivos.");
+        rules.push("57. SWARM ANTI-LOOP: Imponha depth-limits para loops de IA/Agentes recursivos.");
+        rules.push("72. RPC PORT LEAK: MessageChannel requer port2.unref();");
+    }
+
+    const prompt = `[MÓDULO DE RECONSTITUIÇÃO ATIVADO - CONTEXTO: ${ctx}]\nRegras Estritas V116.0.0 OMNI-NEXUS aplicadas sob demanda:\n` + rules.join("\n");
+    return { jsonrpc: "2.0", id: request.id, result: { content: [{ type: "text", text: scrub(prompt) }] } };
+}
+
+async function handleToolCall(request, params, database) {
+    const { name } = params;
+    const args = params.arguments || {};
+    
+    if (name === "evaluate_logic") return await handleEvaluateLogic(request, args, database);
+    if (name === "record_lesson") return await handleRecordLesson(request, args, database);
+    if (name === "self_repair_prompt") return handleSelfRepairPrompt(request, args);
+    throw new Error(`Tool not found: ${name}`);
+}
+
+async function handleRequest(request) {
+    const { method, params } = request;
+    const database = await initDB();
+
+    if (method === "initialize") {
+        return { jsonrpc: "2.0", id: request.id, result: { protocolVersion: "2024-11-05", capabilities: { tools: {} }, serverInfo: { name: "ninja-meta-cognitive", version: "116.0.0" } } };
+    }
+    if (method === "tools/list") {
+        return { jsonrpc: "2.0", id: request.id, result: { tools } };
+    }
+    if (method === "tools/call") {
+        try {
+            return await handleToolCall(request, params, database);
+        } catch (e) {
+            return { jsonrpc: "2.0", id: request.id, error: { code: -32603, message: scrub(`[Meta] Error: ${e.message}`) } };
+        }
+    }
+}
+
+let inputBuffer = '';
+process.stdin.setEncoding('utf8');
+process.stdin.on('data', async (d) => { // V112.0.0 OMNI-NEXUS TRANSCENDENCE Reposição Async para GC Breath
+    inputBuffer += d.toString();
+    
+    if (inputBuffer.length > 5120000) {
+        let safeBuffer = inputBuffer.slice(-256000);
+        let firstNewline = safeBuffer.indexOf('\n');
+        inputBuffer = firstNewline !== -1 ? safeBuffer.substring(firstNewline + 1) : "";
+    }
+    
+    let nIndex;
+    let chunkStartTime = performance.now();
+    let loops = 0;
+    
+    // Process completely formed lines with zero-delay burst
+    while ((nIndex = inputBuffer.indexOf('\n')) !== -1) {
+        const line = inputBuffer.slice(0, nIndex).trim();
+        inputBuffer = inputBuffer.slice(nIndex + 1); // V112.0.0 GC-Optimized slice
+        loops++;
+        
+        if (line) {
+             (async () => {
+                 try {
+                     const req = JSON.parse(line);
+                     const res = await handleRequest(req);
+                     if (res && process.stdout.writable) {
+                         process.stdout.write(JSON.stringify(res) + '\n');
+                     }
+                 } catch(e) {
+                     process.stderr.write(scrub(`[Meta] STDIN Error: ${e.message}\n`));
+                 }
+             })();
+        }
+        
+        if (performance.now() - chunkStartTime > 0.8 || loops > 10) {
+            await zeroDelayYield();
+            chunkStartTime = performance.now();
+            loops = 0;
+        }
+    }
+});
+
+process.stderr.write("NINJA META-COGNITION V116.0.0 OPERATIONAL (SYSTEM 2 - OMNI-NEXUS TRANSCENDENCE CORE 2026)\n");

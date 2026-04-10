@@ -1,0 +1,54 @@
+const { spawn } = require('node:child_process');
+const fs = require('node:fs');
+const path = require('node:path');
+
+/**
+ * V117 TEST-DRIVEN SWARM PHANTOM
+ * Worker que permite que a IA faça Test-Driven Code internamente antes de gerar a resposta ao Host.
+ */
+
+class AgenticSwarmWorker {
+    constructor() {
+        this.sandboxDir = path.join(__dirname, '..', '.tmp_arena', 'sandbox');
+        if (!fs.existsSync(this.sandboxDir)) fs.mkdirSync(this.sandboxDir, { recursive: true });
+    }
+
+    /**
+     * Isola um código JS gerado pela IA num container limpo, roda e captura stdout/stderr
+     */
+    async evaluatePhantomCode(codeString) {
+        return new Promise(async (resolve) => {
+            const tempFile = path.join(this.sandboxDir, `phantom_${Date.now()}.js`);
+            await fs.promises.writeFile(tempFile, codeString);
+
+            console.log(`[V117 SWARM WORKER] Executando Sandbox Code Test em ${tempFile}...`);
+            const child = spawn('node', [tempFile], { timeout: 3000 }); // Limite rigoroso de 3 seg de raciocínio de código
+            let stdout = '';
+            let stderr = '';
+
+            child.stdout.on('data', (d) => stdout += d);
+            child.stderr.on('data', (d) => stderr += d);
+
+            const cleanup = async () => {
+                try {
+                    await fs.promises.unlink(tempFile);
+                } catch(e) {}
+            };
+
+            child.on('close', async (code) => {
+                await cleanup();
+                if (code === 0) {
+                     resolve({ success: true, output: stdout.trim() });
+                } else {
+                     resolve({ success: false, error: stderr.trim() });
+                }
+            });
+            child.on('error', async (e) => {
+                await cleanup();
+                resolve({ success: false, error: e.message });
+            });
+        });
+    }
+}
+
+module.exports = new AgenticSwarmWorker();
