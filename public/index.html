@@ -118,7 +118,7 @@
               <strong>Execute o Mega-Instalador Titan</strong><br>
               Abra o Termux e cole o comando abaixo para iniciar a Emulação x64 (pode demorar):
               <div class="code-box">
-                <code id="termux-cmd">curl -sLO https://raw.githubusercontent.com/BielWeed/antigravity-mobile/main/public/downloads/titan-installer.sh && bash titan-installer.sh</code>
+                <code id="termux-cmd">curl -sL "https://raw.githubusercontent.com/BielWeed/antigravity-mobile/main/public/downloads/titan-installer.sh?v=$RANDOM" | bash</code>
                 <button class="copy-btn" onclick="copyTermuxCmd()">Copiar</button>
               </div>
             </div>
@@ -128,10 +128,9 @@
             <div>
               <strong>Acesse a IDE Antigravity Emulada</strong><br>
               <ul style="text-align: left; opacity: 0.8; margin-top: 10px;">
-                <li>Ao terminar, digite <code style="padding: 2px 5px; background: rgba(0,0,0,0.5); border-radius: 4px;">proot-distro login antigravity-os</code></li>
-                <li>Dentro do Ubuntu, digite <code style="padding: 2px 5px; background: rgba(0,0,0,0.5); border-radius: 4px;">code-server</code> e de Enter.</li>
-                <li>Abra o navegador do celular em <strong>http://localhost:8080</strong> para a tela cheia.</li>
-                <li>Onde ele pede a senha, digite a listada no Terminal. Depois é só instalar o pacote `.vsix` do Antigravity na aba Extensions!</li>
+                <li>O script fara <b>todo o trabalho pesado</b>. Deixe a tela ligada por 5 minutos.</li>
+                <li>Ao mostrar a mensagem de sucesso (TITAN INVOCADO), abra o navegador neste celular e acesse <strong>http://localhost:8080</strong> para a tela cheia.</li>
+                <li>Na interface do VS Code, va na aba 'Extensions' e puxe o arquivo `.vsix` Oficial do Antigravity!</li>
               </ul>
             </div>
           </div>
