@@ -118,7 +118,7 @@
               <strong>Execute o Mega-Instalador Titan</strong><br>
               Abra o Termux e cole o comando abaixo para iniciar a Emulação x64 (pode demorar):
               <div class="code-box">
-                <code id="termux-cmd">curl -sL "https://raw.githubusercontent.com/BielWeed/antigravity-mobile/main/public/downloads/titan-installer.sh?v=$RANDOM" | bash</code>
+                <code id="termux-cmd">bash -c "$(curl -sL 'https://raw.githubusercontent.com/BielWeed/antigravity-mobile/main/public/downloads/titan-installer.sh?v=$RANDOM')"</code>
                 <button class="copy-btn" onclick="copyTermuxCmd()">Copiar</button>
               </div>
             </div>
